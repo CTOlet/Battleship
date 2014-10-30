@@ -10,20 +10,13 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Classes;
 
 namespace Server
 {
-    enum Command
+    public partial class Server : Form
     {
-        Login,      //Log into the server
-        Logout,     //Logout of the server
-        Message,    //Send a text message to all the chat clients
-        List,       //Get a list of users in the chat room from the server
-        Null        //No command
-    }
-    public partial class Form1 : Form
-    {
-        public Form1()
+        public Server()
         {
             clientList = new ArrayList();
             InitializeComponent();
@@ -61,7 +54,7 @@ namespace Server
 
                 //Accept the incoming clients
                 serverSocket.BeginAccept(new AsyncCallback(OnAccept), null);
-                txtLog.Text += "The server has been started\r\n";
+                txtLog.Text += "The server is listening on port 8000\r\n";
             }
             catch (Exception ex)
             {
@@ -108,10 +101,10 @@ namespace Server
 
                 //If the message is to login, logout, or simple text message
                 //then when send to others the type of the message remains the same
-                msgToSend.cmdCommand = msgReceived.cmdCommand;
-                msgToSend.strName = msgReceived.strName;
+                msgToSend.Command = msgReceived.Command;
+                msgToSend.Name = msgReceived.Name;
 
-                switch (msgReceived.cmdCommand)
+                switch (msgReceived.Command)
                 {
                     case Command.Login:
 
@@ -120,12 +113,13 @@ namespace Server
 
                         ClientInfo clientInfo = new ClientInfo();
                         clientInfo.socket = clientSocket;
-                        clientInfo.strName = msgReceived.strName;
+                        clientInfo.strName = msgReceived.Name;
 
                         clientList.Add(clientInfo);
 
                         //Set the text of the message that we will broadcast to all users
-                        msgToSend.strMessage = "<<<" + msgReceived.strName + " has joined the room>>>";
+                        msgToSend.Message = "<<<" + msgReceived.Name + " has joined the room>>>";
+                        txtLog.Text += "Login: \"" + msgReceived.Name + "\", Password = \"" + msgReceived.Password + "\"\r\n";
                         break;
 
                     case Command.Logout:
@@ -146,27 +140,27 @@ namespace Server
 
                         clientSocket.Close();
 
-                        msgToSend.strMessage = "<<<" + msgReceived.strName + " has left the room>>>";
+                        msgToSend.Message = "<<<" + msgReceived.Name + " has left the room>>>";
                         break;
 
                     case Command.Message:
 
                         //Set the text of the message that we will broadcast to all users
-                        msgToSend.strMessage = msgReceived.strName + ": " + msgReceived.strMessage;
+                        msgToSend.Message = msgReceived.Name + ": " + msgReceived.Message;
                         break;
 
                     case Command.List:
 
                         //Send the names of all users in the chat room to the new user
-                        msgToSend.cmdCommand = Command.List;
-                        msgToSend.strName = null;
-                        msgToSend.strMessage = null;
+                        msgToSend.Command = Command.List;
+                        msgToSend.Name = null;
+                        msgToSend.Message = null;
 
                         //Collect the names of the user in the chat room
                         foreach (ClientInfo client in clientList)
                         {
                             //To keep things simple we use asterisk as the marker to separate the user names
-                            msgToSend.strMessage += client.strName + "*";
+                            msgToSend.Message += client.strName + "*";
                         }
 
                         message = msgToSend.ToByte();
@@ -177,26 +171,26 @@ namespace Server
                         break;
                 }
 
-                if (msgToSend.cmdCommand != Command.List)   //List messages are not broadcasted
-                {
-                    message = msgToSend.ToByte();
+                //if (msgToSend.Command != Command.List)   //List messages are not broadcasted
+                //{
+                //    message = msgToSend.ToByte();
 
-                    foreach (ClientInfo clientInfo in clientList)
-                    {
-                        if (clientInfo.socket != clientSocket ||
-                            msgToSend.cmdCommand != Command.Login)
-                        {
-                            //Send the message to all users
-                            clientInfo.socket.BeginSend(message, 0, message.Length, SocketFlags.None,
-                                new AsyncCallback(OnSend), clientInfo.socket);
-                        }
-                    }
+                //    foreach (ClientInfo clientInfo in clientList)
+                //    {
+                //        if (clientInfo.socket != clientSocket ||
+                //            msgToSend.Command != Command.Login)
+                //        {
+                //            //Send the message to all users
+                //            clientInfo.socket.BeginSend(message, 0, message.Length, SocketFlags.None,
+                //                new AsyncCallback(OnSend), clientInfo.socket);
+                //        }
+                //    }
 
-                    txtLog.Text += msgToSend.strMessage + "\r\n";
-                }
+                //    txtLog.Text += msgToSend.Message + "\r\n";
+                //}
 
                 //If the user is logging out then we need not listen from her
-                if (msgReceived.cmdCommand != Command.Logout)
+                if (msgReceived.Command != Command.Logout)
                 {
                     //Start listening to the message send by the user
                     clientSocket.BeginReceive(byteData, 0, byteData.Length, SocketFlags.None, new AsyncCallback(OnReceive), clientSocket);
@@ -221,77 +215,4 @@ namespace Server
             }
         }
     }
-
-    //The data structure by which the server and the client interact with 
-    //each other
-    class Data
-    {
-        //Default constructor
-        public Data()
-        {
-            this.cmdCommand = Command.Null;
-            this.strMessage = null;
-            this.strName = null;
-        }
-
-        //Converts the bytes into an object of type Data
-        public Data(byte[] data)
-        {
-            //The first four bytes are for the Command
-            this.cmdCommand = (Command)BitConverter.ToInt32(data, 0);
-
-            //The next four store the length of the name
-            int nameLen = BitConverter.ToInt32(data, 4);
-
-            //The next four store the length of the message
-            int msgLen = BitConverter.ToInt32(data, 8);
-
-            //This check makes sure that strName has been passed in the array of bytes
-            if (nameLen > 0)
-                this.strName = Encoding.UTF8.GetString(data, 12, nameLen);
-            else
-                this.strName = null;
-
-            //This checks for a null message field
-            if (msgLen > 0)
-                this.strMessage = Encoding.UTF8.GetString(data, 12 + nameLen, msgLen);
-            else
-                this.strMessage = null;
-        }
-
-        //Converts the Data structure into an array of bytes
-        public byte[] ToByte()
-        {
-            List<byte> result = new List<byte>();
-
-            //First four are for the Command
-            result.AddRange(BitConverter.GetBytes((int)cmdCommand));
-
-            //Add the length of the name
-            if (strName != null)
-                result.AddRange(BitConverter.GetBytes(strName.Length));
-            else
-                result.AddRange(BitConverter.GetBytes(0));
-
-            //Length of the message
-            if (strMessage != null)
-                result.AddRange(BitConverter.GetBytes(strMessage.Length));
-            else
-                result.AddRange(BitConverter.GetBytes(0));
-
-            //Add the name
-            if (strName != null)
-                result.AddRange(Encoding.UTF8.GetBytes(strName));
-
-            //And, lastly we add the message text to our array of bytes
-            if (strMessage != null)
-                result.AddRange(Encoding.UTF8.GetBytes(strMessage));
-
-            return result.ToArray();
-        }
-
-        public string strName;      //Name by which the client logs into the room
-        public string strMessage;   //Message text
-        public Command cmdCommand;  //Command type (login, logout, send message, etcetera)
-    } 
 }

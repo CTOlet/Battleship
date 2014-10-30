@@ -16,7 +16,16 @@ namespace Client
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new Form1());
+            var loginForm = new Login_Form();
+            Application.Run(loginForm);
+            if (loginForm.DialogResult == DialogResult.OK)
+            {
+                var mainForm = new Main_Form();
+                mainForm.clientSocket = loginForm.clientSocket;
+                //mainForm.user_id = loginForm.user_id;
+
+                mainForm.ShowDialog();
+            }
         }
     }
 }
