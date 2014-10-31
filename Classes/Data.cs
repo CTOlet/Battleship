@@ -12,7 +12,9 @@ namespace Classes
         Logout,     //Logout of the server
         Message,    //Send a text message to all the chat clients
         List,       //Get a list of users in the chat room from the server
-        Null        //No command
+        Null,        //No command
+        Error,
+        User
     }
 
     //The data structure by which the server and the client interact with 
@@ -65,11 +67,31 @@ namespace Classes
                     else
                         this.Message = null;
                     break;
+                case Command.Logout:
+                    //The next four store the length of the name
+                    nameLen = BitConverter.ToInt32(data, 4);
+
+                    Name = nameLen > 0 ? Encoding.UTF8.GetString(data, 8, nameLen) : null;
+
+                    break;
+                case Command.Error:
+                    //The next four store the length of the message
+                    msgLen = BitConverter.ToInt32(data, 4);
+
+                    Message = msgLen > 0 ? Encoding.UTF8.GetString(data, 8, msgLen) : null;
+
+                    break;
+                case Command.User:
+                    //The next four store the length of the message json
+                    msgLen = BitConverter.ToInt32(data, 4);
+
+                    Message = msgLen > 0 ? Encoding.UTF8.GetString(data, 8, msgLen) : null;
+                    break;
             }
         }
 
         //Converts the Data structure into an array of bytes
-        public byte[] ToByte()
+        public byte[] ToByte(object obj = null)
         {
             List<byte> result = new List<byte>();
 
@@ -107,6 +129,33 @@ namespace Classes
                     if (Message != null)
                         result.AddRange(Encoding.UTF8.GetBytes(Message));
                     break;
+                case Command.Logout:
+                    //Add the length of the name
+                    result.AddRange(Name != null ? BitConverter.GetBytes(Name.Length) : BitConverter.GetBytes(0));
+
+                    //Add the name
+                    if (Name != null)
+                        result.AddRange(Encoding.UTF8.GetBytes(Name));
+                    break;
+                case Command.Error:
+                    //Add the length of the name
+                    result.AddRange(Message != null ? BitConverter.GetBytes(Message.Length) : BitConverter.GetBytes(0));
+
+                    //Add the message
+                    if (Message != null)
+                        result.AddRange(Encoding.UTF8.GetBytes(Message));
+                    break;
+                case Command.User:
+                    //Add the length of the user json
+                    var user = (User) obj;
+                    if (user != null) Message = user.ToJson();
+
+                    result.AddRange(Message != null ? BitConverter.GetBytes(Message.Length) : BitConverter.GetBytes(0));
+
+                    //Add the message
+                    if (Message != null)
+                        result.AddRange(Encoding.UTF8.GetBytes(Message));
+                    break;
             }
 
             return result.ToArray();
@@ -115,6 +164,7 @@ namespace Classes
         public string Name;      //Name by which the client logs into the room
         public string Password;
         public string Message;   //Message text
+        public User User;
         public Command Command;  //Command type (login, logout, send message, etcetera)
     }
 }

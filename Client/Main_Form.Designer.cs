@@ -39,6 +39,7 @@
             this.button1.TabIndex = 0;
             this.button1.Text = "button1";
             this.button1.UseVisualStyleBackColor = true;
+            this.button1.Click += new System.EventHandler(this.button1_Click);
             // 
             // Main_Form
             // 
@@ -48,6 +49,8 @@
             this.Controls.Add(this.button1);
             this.Name = "Main_Form";
             this.Text = "Main_Form";
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Main_Form_FormClosing);
+            this.Load += new System.EventHandler(this.Main_Form_Load);
             this.ResumeLayout(false);
 
         }

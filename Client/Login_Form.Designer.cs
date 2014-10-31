@@ -51,6 +51,7 @@
             this.textBox_Password.Name = "textBox_Password";
             this.textBox_Password.Size = new System.Drawing.Size(142, 26);
             this.textBox_Password.TabIndex = 1;
+            this.textBox_Password.KeyDown += new System.Windows.Forms.KeyEventHandler(this.textBox_Password_KeyDown);
             // 
             // label_Name
             // 

@@ -8,6 +8,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Classes;
@@ -20,6 +21,7 @@ namespace Server
         {
             clientList = new ArrayList();
             InitializeComponent();
+            var dbconnect = new DBConnect();
         }
 
         struct ClientInfo
@@ -58,7 +60,7 @@ namespace Server
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message, "SGSserverTCP",
+                MessageBox.Show(ex.Message, "Server: Form1_Load",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
@@ -78,7 +80,7 @@ namespace Server
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message, "SGSserverTCP",
+                MessageBox.Show(ex.Message, "Server: OnAccept",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
@@ -104,22 +106,64 @@ namespace Server
                 msgToSend.Command = msgReceived.Command;
                 msgToSend.Name = msgReceived.Name;
 
+                int nIndex;
                 switch (msgReceived.Command)
                 {
                     case Command.Login:
+                        var user = User.Login(msgReceived.Name, msgReceived.Password);
+                        if (user != null)
+                        {
+                            //When a user logs in to the server then we add her to our
+                            //list of clients
 
-                        //When a user logs in to the server then we add her to our
-                        //list of clients
+                            ClientInfo clientInfo = new ClientInfo();
+                            clientInfo.socket = clientSocket;
+                            clientInfo.strName = msgReceived.Name;
 
-                        ClientInfo clientInfo = new ClientInfo();
-                        clientInfo.socket = clientSocket;
-                        clientInfo.strName = msgReceived.Name;
+                            clientList.Add(clientInfo);
 
-                        clientList.Add(clientInfo);
+                            txtLog.Text += String.Format("Login: '{0}', Password: '{1}'\r\n",
+                                msgReceived.Name,
+                                msgReceived.Password
+                                );
 
-                        //Set the text of the message that we will broadcast to all users
-                        msgToSend.Message = "<<<" + msgReceived.Name + " has joined the room>>>";
-                        txtLog.Text += "Login: \"" + msgReceived.Name + "\", Password = \"" + msgReceived.Password + "\"\r\n";
+                            msgToSend.Command = Command.User;
+                            message = msgToSend.ToByte(user);
+
+                            //Send the name of the users in the chat room
+                            clientSocket.BeginSend(message, 0, message.Length, SocketFlags.None,
+                                    new AsyncCallback(OnSend), clientSocket);
+
+                            clientSocket.BeginReceive(byteData, 0, byteData.Length, SocketFlags.None, new AsyncCallback(OnReceive), clientSocket);
+                        }
+                        else
+                        {
+                            msgToSend.Command = Command.Error;
+                            msgToSend.Message = "Invalid name/password, please try again";
+
+                            message = msgToSend.ToByte();
+
+                            //Send the name of the users in the chat room
+                            //IAsyncResult result = clientSocket.BeginSend(message, 0, message.Length, SocketFlags.None, new AsyncCallback(OnSend), clientSocket);
+                            clientSocket.Send(message, 0, message.Length, SocketFlags.None);
+                            //while (!result.IsCompleted)
+                            //{
+                            //    // Do more work here if the call isn't complete
+                            //    Thread.Sleep(100);
+                            //}
+
+                            nIndex = 0;
+                            foreach (ClientInfo client in clientList)
+                            {
+                                if (client.socket == clientSocket)
+                                {
+                                    clientList.RemoveAt(nIndex);
+                                    break;
+                                }
+                                ++nIndex;
+                            }
+                            clientSocket.Close();
+                        }
                         break;
 
                     case Command.Logout:
@@ -127,7 +171,7 @@ namespace Server
                         //When a user wants to log out of the server then we search for her 
                         //in the list of clients and close the corresponding connection
 
-                        int nIndex = 0;
+                        nIndex = 0;
                         foreach (ClientInfo client in clientList)
                         {
                             if (client.socket == clientSocket)
@@ -140,13 +184,16 @@ namespace Server
 
                         clientSocket.Close();
 
-                        msgToSend.Message = "<<<" + msgReceived.Name + " has left the room>>>";
+                        msgToSend.Message = "<<<" + msgReceived.Name + " has disconnected from server>>>";
+                        txtLog.Text += msgReceived.Name + " has disconnected from server\r\n";
                         break;
 
                     case Command.Message:
-
+                        txtLog.Text += msgReceived.Name + ": " + msgReceived.Message + "\r\n";
                         //Set the text of the message that we will broadcast to all users
                         msgToSend.Message = msgReceived.Name + ": " + msgReceived.Message;
+
+                        clientSocket.BeginReceive(byteData, 0, byteData.Length, SocketFlags.None, new AsyncCallback(OnReceive), clientSocket);
                         break;
 
                     case Command.List:
@@ -188,17 +235,10 @@ namespace Server
 
                 //    txtLog.Text += msgToSend.Message + "\r\n";
                 //}
-
-                //If the user is logging out then we need not listen from her
-                if (msgReceived.Command != Command.Logout)
-                {
-                    //Start listening to the message send by the user
-                    clientSocket.BeginReceive(byteData, 0, byteData.Length, SocketFlags.None, new AsyncCallback(OnReceive), clientSocket);
-                }
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message, "SGSserverTCP", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(ex.Message, "Server: OnReceive", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -211,7 +251,7 @@ namespace Server
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message, "SGSserverTCP", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(ex.Message, "Server: OnSend", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
     }

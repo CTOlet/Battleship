@@ -21,8 +21,8 @@ namespace Client
             if (loginForm.DialogResult == DialogResult.OK)
             {
                 var mainForm = new Main_Form();
-                mainForm.clientSocket = loginForm.clientSocket;
-                //mainForm.user_id = loginForm.user_id;
+                mainForm.ClientSocket = loginForm.ClientSocket;
+                mainForm.User = loginForm.User;
 
                 mainForm.ShowDialog();
             }
