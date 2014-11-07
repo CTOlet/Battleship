@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace Client
@@ -17,15 +14,16 @@ namespace Client
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
             var loginForm = new Login_Form();
-            Application.Run(loginForm);
-            if (loginForm.DialogResult == DialogResult.OK)
-            {
-                var mainForm = new Main_Form();
-                mainForm.ClientSocket = loginForm.ClientSocket;
-                mainForm.User = loginForm.User;
+            loginForm.Show();
+            Application.Run();
+            //if (loginForm.DialogResult == DialogResult.OK)
+            //{
+            //    var mainForm = new Main_Form();
+            //    mainForm.clientSocket = loginForm.clientSocket;
+            //    mainForm.user = loginForm.user;
 
-                mainForm.ShowDialog();
-            }
+            //    mainForm.ShowDialog();
+            //}
         }
     }
 }

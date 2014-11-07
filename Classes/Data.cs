@@ -14,7 +14,9 @@ namespace Classes
         List,       //Get a list of users in the chat room from the server
         Null,        //No command
         Error,
-        User
+        User,
+        FindGame,
+        GameFound,
     }
 
     //The data structure by which the server and the client interact with 
@@ -87,6 +89,19 @@ namespace Classes
 
                     Message = msgLen > 0 ? Encoding.UTF8.GetString(data, 8, msgLen) : null;
                     break;
+                case Command.FindGame:
+                    //The next four store the length of the name
+                    nameLen = BitConverter.ToInt32(data, 4);
+
+                    Name = nameLen > 0 ? Encoding.UTF8.GetString(data, 8, nameLen) : null;
+
+                    break;
+                case Command.GameFound:
+                    //The next four store the length of the message json
+                    msgLen = BitConverter.ToInt32(data, 4);
+
+                    Message = msgLen > 0 ? Encoding.UTF8.GetString(data, 8, msgLen) : null;
+                    break;
             }
         }
 
@@ -98,6 +113,7 @@ namespace Classes
             //First four are for the Command
             result.AddRange(BitConverter.GetBytes((int)Command));
 
+            User user;
             switch (Command)
             {
                 case Command.Login:
@@ -147,7 +163,29 @@ namespace Classes
                     break;
                 case Command.User:
                     //Add the length of the user json
-                    var user = (User) obj;
+                    user = obj as User;
+                    if (user != null) Message = user.ToJson();
+
+                    result.AddRange(Message != null ? BitConverter.GetBytes(Message.Length) : BitConverter.GetBytes(0));
+
+                    //Add the message
+                    if (Message != null)
+                        result.AddRange(Encoding.UTF8.GetBytes(Message));
+                    break;
+
+                case Command.FindGame:
+                    //Add the length of the name
+                    result.AddRange(Name != null ? BitConverter.GetBytes(Name.Length) : BitConverter.GetBytes(0));
+
+                    //Add the name
+                    if (Name != null)
+                        result.AddRange(Encoding.UTF8.GetBytes(Name));
+
+                    break;
+
+                case Command.GameFound:
+                    // Opponent info
+                    user = obj as User;
                     if (user != null) Message = user.ToJson();
 
                     result.AddRange(Message != null ? BitConverter.GetBytes(Message.Length) : BitConverter.GetBytes(0));
@@ -161,7 +199,7 @@ namespace Classes
             return result.ToArray();
         }
 
-        public string Name;      //Name by which the client logs into the room
+        public string Name;      //name by which the client logs into the room
         public string Password;
         public string Message;   //Message text
         public User User;

@@ -1,17 +1,12 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using Classes;
+using MySql.Data.MySqlClient.Memcached;
 
 namespace Server
 {
@@ -19,24 +14,34 @@ namespace Server
     {
         public Server()
         {
-            clientList = new ArrayList();
             InitializeComponent();
-            var dbconnect = new DBConnect();
+
+            clientList = new List<ClientInfo>();
+            findingList = new List<ClientInfo>();
+            games = new List<Game>();
         }
 
-        struct ClientInfo
+        public struct ClientInfo
         {
             public Socket socket;   //Socket of the client
-            public string strName;  //Name by which the user logged into the chat room
+            public string name;  //Name by which the user logged into the chat room
         }
 
         //The collection of all clients logged into the room (an array of type ClientInfo)
-        ArrayList clientList;
+        private List<ClientInfo> clientList;
+
+        public string getClientName(Socket clientSocket)
+        {
+            return (from ClientInfo client in clientList where client.socket == clientSocket select client.name).FirstOrDefault();
+        }
+
+        private List<ClientInfo> findingList;
+        private List<Game> games;
 
         //The main socket on which the server listens to the clients
-        Socket serverSocket;
+        private Socket serverSocket;
 
-        byte[] byteData = new byte[1024];
+        private byte[] byteData = new byte[1024];
 
         private void Form1_Load(object sender, EventArgs e)
         {
@@ -55,8 +60,8 @@ namespace Server
                 serverSocket.Listen(4);
 
                 //Accept the incoming clients
-                serverSocket.BeginAccept(new AsyncCallback(OnAccept), null);
-                txtLog.Text += "The server is listening on port 8000\r\n";
+                serverSocket.BeginAccept(OnAccept, null);
+                txtLog.Text += string.Format("[{0}] The server is listening on port 8000\r\n", DateTime.Now.ToString("hh:mm:ss"));
             }
             catch (Exception ex)
             {
@@ -72,11 +77,11 @@ namespace Server
                 Socket clientSocket = serverSocket.EndAccept(ar);
 
                 //Start listening for more clients
-                serverSocket.BeginAccept(new AsyncCallback(OnAccept), null);
+                serverSocket.BeginAccept(OnAccept, null);
 
                 //Once the client connects then start receiving the commands from her
                 clientSocket.BeginReceive(byteData, 0, byteData.Length, SocketFlags.None,
-                    new AsyncCallback(OnReceive), clientSocket);
+                    OnReceive, clientSocket);
             }
             catch (Exception ex)
             {
@@ -110,7 +115,7 @@ namespace Server
                 switch (msgReceived.Command)
                 {
                     case Command.Login:
-                        var user = User.Login(msgReceived.Name, msgReceived.Password);
+                        var user = UserDAO.Login(msgReceived.Name, msgReceived.Password);
                         if (user != null)
                         {
                             //When a user logs in to the server then we add her to our
@@ -118,13 +123,13 @@ namespace Server
 
                             ClientInfo clientInfo = new ClientInfo();
                             clientInfo.socket = clientSocket;
-                            clientInfo.strName = msgReceived.Name;
+                            clientInfo.name = msgReceived.Name;
 
                             clientList.Add(clientInfo);
 
-                            txtLog.Text += String.Format("Login: '{0}', Password: '{1}'\r\n",
-                                msgReceived.Name,
-                                msgReceived.Password
+                            txtLog.Text += String.Format("[{0}] {1} has logged in\r\n",
+                                DateTime.Now.ToString("hh:mm:ss"),
+                                msgReceived.Name
                                 );
 
                             msgToSend.Command = Command.User;
@@ -132,9 +137,9 @@ namespace Server
 
                             //Send the name of the users in the chat room
                             clientSocket.BeginSend(message, 0, message.Length, SocketFlags.None,
-                                    new AsyncCallback(OnSend), clientSocket);
+                                    OnSend, clientSocket);
 
-                            clientSocket.BeginReceive(byteData, 0, byteData.Length, SocketFlags.None, new AsyncCallback(OnReceive), clientSocket);
+                            clientSocket.BeginReceive(byteData, 0, byteData.Length, SocketFlags.None, OnReceive, clientSocket);
                         }
                         else
                         {
@@ -170,22 +175,13 @@ namespace Server
 
                         //When a user wants to log out of the server then we search for her 
                         //in the list of clients and close the corresponding connection
-
-                        nIndex = 0;
-                        foreach (ClientInfo client in clientList)
-                        {
-                            if (client.socket == clientSocket)
-                            {
-                                clientList.RemoveAt(nIndex);
-                                break;
-                            }
-                            ++nIndex;
-                        }
+                        clientList.RemoveAll(x => x.socket == clientSocket);
+                        findingList.RemoveAll(x => x.socket == clientSocket);
 
                         clientSocket.Close();
 
                         msgToSend.Message = "<<<" + msgReceived.Name + " has disconnected from server>>>";
-                        txtLog.Text += msgReceived.Name + " has disconnected from server\r\n";
+                        txtLog.Text += string.Format("[{0}] {1} has disconnected from server\r\n", DateTime.Now.ToString("hh:mm:ss"), msgReceived.Name);
                         break;
 
                     case Command.Message:
@@ -193,7 +189,33 @@ namespace Server
                         //Set the text of the message that we will broadcast to all users
                         msgToSend.Message = msgReceived.Name + ": " + msgReceived.Message;
 
-                        clientSocket.BeginReceive(byteData, 0, byteData.Length, SocketFlags.None, new AsyncCallback(OnReceive), clientSocket);
+                        clientSocket.BeginReceive(byteData, 0, byteData.Length, SocketFlags.None, OnReceive, clientSocket);
+                        break;
+
+                    case Command.FindGame:
+                        findingList.Add(clientList.First(x => x.socket == clientSocket));
+                        txtLog.Text += string.Format("[{0}] {1} is looking for a game...\r\n", DateTime.Now.ToString("hh:mm:ss"), getClientName(clientSocket));
+
+                        if (findingList.Count > 1)
+                        {
+                            Game game = new Game();
+                            game.player1 = findingList[0];
+                            game.player2 = findingList[1];
+
+                            games.Add(game);
+                            txtLog.Text += string.Format("[{0}] Connecting {1} with {2}...\r\n", DateTime.Now.ToString("hh:mm:ss"), game.player1.name, game.player2.name);
+
+                            msgToSend.Command = Command.GameFound;
+
+                            message = msgToSend.ToByte(UserDAO.FindByName(game.player2.name));
+                            game.player1.socket.BeginSend(message, 0, message.Length, SocketFlags.None,
+                                OnSend, null);
+
+                            message = msgToSend.ToByte(UserDAO.FindByName(game.player1.name));
+                            game.player2.socket.BeginSend(message, 0, message.Length, SocketFlags.None,
+                                OnSend, null);
+                        }
+                        clientSocket.BeginReceive(byteData, 0, byteData.Length, SocketFlags.None, OnReceive, clientSocket);
                         break;
 
                     case Command.List:
@@ -207,14 +229,14 @@ namespace Server
                         foreach (ClientInfo client in clientList)
                         {
                             //To keep things simple we use asterisk as the marker to separate the user names
-                            msgToSend.Message += client.strName + "*";
+                            msgToSend.Message += client.name + "*";
                         }
 
                         message = msgToSend.ToByte();
 
                         //Send the name of the users in the chat room
                         clientSocket.BeginSend(message, 0, message.Length, SocketFlags.None,
-                                new AsyncCallback(OnSend), clientSocket);
+                                OnSend, clientSocket);
                         break;
                 }
 
@@ -252,6 +274,27 @@ namespace Server
             catch (Exception ex)
             {
                 MessageBox.Show(ex.Message, "Server: OnSend", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void timer1_Tick(object sender, EventArgs e)
+        {
+            listBox_GamesList.Items.Clear();
+            foreach (var game in games.ToList())
+            {
+                listBox_GamesList.Items.Add(string.Format("{0} - {1}", game.player1.name, game.player2.name));
+            }
+
+            listBox_QueueList.Items.Clear();
+            foreach (var client in findingList)
+            {
+                listBox_QueueList.Items.Add(string.Format("{0}", client.name));
+            }
+
+            listBox_OnlineList.Items.Clear();
+            foreach (ClientInfo clientInfo in clientList)
+            {
+                listBox_OnlineList.Items.Add(string.Format("{0}", clientInfo.name));
             }
         }
     }

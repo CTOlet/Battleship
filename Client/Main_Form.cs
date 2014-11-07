@@ -6,6 +6,7 @@ using System.Drawing;
 using System.Linq;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Classes;
@@ -14,9 +15,11 @@ namespace Client
 {
     public partial class Main_Form : Form
     {
-        public Socket ClientSocket;
-        public User User;
+        public Socket clientSocket;
+        public User user;
+        public User opponent;
         private byte[] byteData = new byte[1024];
+        public bool appClose = true;
 
         public Main_Form()
         {
@@ -27,7 +30,7 @@ namespace Client
         {
             try
             {
-                ClientSocket.EndSend(ar);
+                clientSocket.EndSend(ar);
             }
             catch (ObjectDisposedException)
             { }
@@ -39,92 +42,81 @@ namespace Client
 
         private void OnReceive(IAsyncResult ar)
         {
-            //try
-            //{
-            //    clientSocket.EndReceive(ar);
+            try
+            {
+                clientSocket.EndReceive(ar);
 
-            //    Data msgReceived = new Data(byteData);
-            //    //Accordingly process the message received
-            //    switch (msgReceived.cmdCommand)
-            //    {
-            //        case Command.Login:
-            //            lstChatters.Items.Add(msgReceived.strName);
-            //            break;
+                Data msgReceived = new Data(byteData);
+                //Accordingly process the message received
+                switch (msgReceived.Command)
+                {
+                    case Command.GameFound:
+                        opponent = new User(msgReceived.Message);
+                        appClose = false;
+                        Hide();
+                        var gameForm = new Game_Form { clientSocket = clientSocket, user = user, opponent = opponent };
+                        gameForm.ShowDialog();
+                        Show();
+                        appClose = true;
+                        break;
+                }
 
-            //        case Command.Logout:
-            //            lstChatters.Items.Remove(msgReceived.strName);
-            //            break;
+                byteData = new byte[1024];
 
-            //        case Command.Message:
-            //            break;
+                clientSocket.BeginReceive(byteData, 0, byteData.Length, SocketFlags.None, OnReceive, null);
 
-            //        case Command.List:
-            //            lstChatters.Items.AddRange(msgReceived.strMessage.Split('*'));
-            //            lstChatters.Items.RemoveAt(lstChatters.Items.Count - 1);
-            //            txtChatBox.Text += "<<<" + strName + " has joined the room>>>\r\n";
-            //            break;
-            //    }
-
-            //    if (msgReceived.strMessage != null && msgReceived.cmdCommand != Command.List)
-            //        txtChatBox.Text += msgReceived.strMessage + "\r\n";
-
-            //    byteData = new byte[1024];
-
-            //    clientSocket.BeginReceive(byteData,
-            //                              0,
-            //                              byteData.Length,
-            //                              SocketFlags.None,
-            //                              new AsyncCallback(OnReceive),
-            //                              null);
-
-            //}
-            //catch (ObjectDisposedException)
-            //{ }
-            //catch (Exception ex)
-            //{
-            //    MessageBox.Show(ex.Message, "Battleship", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            //}
+            }
+            catch (ObjectDisposedException)
+            { }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, "Battleship", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         private void Main_Form_Load(object sender, EventArgs e)
         {
+            label_name.Text = user.name;
+            label_wins.Text = user.wins.ToString();
+            label_losses.Text = user.losses.ToString();
+            label_rating.Text = user.rating.ToString();
+
             byteData = new byte[1024];
             //Start listening to the data asynchronously
-            ClientSocket.BeginReceive(byteData,
-                                       0,
-                                       byteData.Length,
-                                       SocketFlags.None,
-                                       new AsyncCallback(OnReceive),
-                                       null);
+            clientSocket.BeginReceive(byteData, 0, byteData.Length, SocketFlags.None, OnReceive, clientSocket);
         }
 
-        private void button1_Click(object sender, EventArgs e)
+        private void button_FindGame_Click(object sender, EventArgs e)
         {
             try
             {
                 //Fill the info for the message to be send
                 Data msgToSend = new Data();
 
-                msgToSend.Name = User.Name;
-                msgToSend.Message = "Hello!";
-                msgToSend.Command = Command.Message;
+                msgToSend.Command = Command.FindGame;
 
                 byte[] byteData = msgToSend.ToByte();
 
                 //Send it to the server
-                ClientSocket.BeginSend(byteData, 0, byteData.Length, SocketFlags.None, new AsyncCallback(OnSend), null);
+                //clientSocket.BeginSend(byteData, 0, byteData.Length, SocketFlags.None, OnSend, null);
+                clientSocket.Send(byteData);
 
                 //txtMessage.Text = null;
             }
             catch (Exception)
             {
                 MessageBox.Show("Unable to send message to the server.", "Battleship", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }  
+            }
         }
 
         private void Main_Form_FormClosing(object sender, FormClosingEventArgs e)
         {
-            if (MessageBox.Show("Are you sure you want to leave the game?", "Battleship",
+            if (appClose == true)
+            {
+                Application.Exit();
+            }
+
+            if (appClose == true && MessageBox.Show("Are you sure you want to leave the game?", "Battleship",
                 MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation) == DialogResult.No)
             {
                 e.Cancel = true;
@@ -136,18 +128,27 @@ namespace Client
                 //Send a message to logout of the server
                 Data msgToSend = new Data();
                 msgToSend.Command = Command.Logout;
-                msgToSend.Name = "Alimzhan";
+                msgToSend.Name = user.name;
 
                 byte[] b = msgToSend.ToByte();
-                ClientSocket.Send(b, 0, b.Length, SocketFlags.None);
-                ClientSocket.Close();
+                clientSocket.Send(b);
+                //clientSocket.BeginSend(byteData, 0, byteData.Length, SocketFlags.None, OnSend, clientSocket);
+                //Thread.Sleep(100);
+                clientSocket.Close();
             }
             catch (ObjectDisposedException)
-            { }
+            {
+            }
             catch (Exception ex)
             {
                 MessageBox.Show(ex.Message, "Battleship", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+
+        private void button_Logout_Click(object sender, EventArgs e)
+        {
+            appClose = false;
+            Close();
         }
     }
 }

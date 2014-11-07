@@ -54,8 +54,14 @@
     <Compile Include="..\Classes\DBConnect.cs">
       <Link>DBConnect.cs</Link>
     </Compile>
+    <Compile Include="..\Classes\Game.cs">
+      <Link>Game.cs</Link>
+    </Compile>
     <Compile Include="..\Classes\User.cs">
       <Link>User.cs</Link>
+    </Compile>
+    <Compile Include="..\Classes\UserDAO.cs">
+      <Link>UserDAO.cs</Link>
     </Compile>
     <Compile Include="Server.cs">
       <SubType>Form</SubType>

@@ -107,7 +107,8 @@
             this.Controls.Add(this.textBox_Name);
             this.Name = "Login_Form";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "Login_Form";
+            this.Text = "Battleship";
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Login_Form_FormClosing);
             this.ResumeLayout(false);
             this.PerformLayout();
 

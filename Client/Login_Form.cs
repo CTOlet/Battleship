@@ -1,13 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using Classes;
 
@@ -15,8 +8,8 @@ namespace Client
 {
     public partial class Login_Form : Form
     {
-        public Socket ClientSocket;
-        public User User;
+        public Socket clientSocket;
+        public User user;
         private byte[] byteData = new byte[1024];
 
         public Login_Form()
@@ -28,7 +21,7 @@ namespace Client
         {
             try
             {
-                ClientSocket.EndSend(ar);
+                clientSocket.EndSend(ar);
                 //strName = txtName.Text;
             }
             catch (Exception ex)
@@ -41,7 +34,7 @@ namespace Client
         {
             try
             {
-                ClientSocket.EndReceive(ar);
+                clientSocket.EndReceive(ar);
 
                 Data msgReceived = new Data(byteData);
                 //Accordingly process the message received
@@ -51,9 +44,14 @@ namespace Client
                         MessageBox.Show(msgReceived.Message, "Battleship: Login", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         break;
                     case Command.User:
-                        User = new User(msgReceived.Message);
-                        DialogResult = DialogResult.OK;
-                        Close();
+                        user = new User(msgReceived.Message);
+                        //DialogResult = DialogResult.OK;
+                        Hide();
+                        var mainForm = new Main_Form();
+                        mainForm.clientSocket = clientSocket;
+                        mainForm.user = user;
+                        mainForm.ShowDialog();
+                        Show();
                         break;
                 }
 
@@ -70,7 +68,7 @@ namespace Client
         {
             try
             {
-                ClientSocket.EndConnect(ar);
+                clientSocket.EndConnect(ar);
 
                 //We are connected so we login into the server
                 Data msgToSend = new Data();
@@ -81,7 +79,7 @@ namespace Client
                 byte[] b = msgToSend.ToByte();
 
                 //Send the message to the server
-                ClientSocket.BeginSend(b, 0, b.Length, SocketFlags.None, new AsyncCallback(OnSend), null);
+                clientSocket.BeginSend(b, 0, b.Length, SocketFlags.None, OnSend, null);
             }
             catch (Exception ex)
             {
@@ -106,27 +104,35 @@ namespace Client
         {
             try
             {
-                ClientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
                 IPAddress ipAddress = IPAddress.Parse("127.0.0.1");
                 //Server is listening on port 1000
                 IPEndPoint ipEndPoint = new IPEndPoint(ipAddress, 8000);
 
                 //Connect to the server
-                ClientSocket.BeginConnect(ipEndPoint, new AsyncCallback(OnConnect), null);
+                clientSocket.BeginConnect(ipEndPoint, OnConnect, null);
 
                 byteData = new byte[1024];
                 //Start listening to the data asynchronously
-                ClientSocket.BeginReceive(byteData,
+                clientSocket.BeginReceive(byteData,
                                            0,
                                            byteData.Length,
                                            SocketFlags.None,
-                                           new AsyncCallback(OnReceive),
+                                           OnReceive,
                                            null);
             }
             catch (Exception ex)
             {
                 MessageBox.Show(ex.Message, "Battleship", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void Login_Form_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            if (e.CloseReason == CloseReason.UserClosing)
+            {
+                Application.Exit();
             }
         }
     }
