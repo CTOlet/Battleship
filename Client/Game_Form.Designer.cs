@@ -127,6 +127,7 @@
             this.Controls.Add(this.label_OwnNameTitle);
             this.Name = "Game_Form";
             this.Text = "Battleship";
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Game_Form_FormClosing);
             this.Load += new System.EventHandler(this.Game_Form_Load);
             this.ResumeLayout(false);
             this.PerformLayout();

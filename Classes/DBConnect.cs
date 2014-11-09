@@ -55,11 +55,11 @@ namespace Classes
                 switch (ex.Number)
                 {
                     case 0:
-                        MessageBox.Show("Cannot connect to server.  Contact administrator", "Battleship", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        MessageBox.Show(@"Cannot connect to server.  Contact administrator", "Battleship", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         break;
 
                     case 1045:
-                        MessageBox.Show("Invalid username/password, please try again", "Battleship", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        MessageBox.Show(@"Invalid username/password, please try again", "Battleship", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         break;
                 }
                 return false;

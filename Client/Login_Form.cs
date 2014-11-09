@@ -26,7 +26,7 @@ namespace Client
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message, "Battleship", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(ex.Message, @"Battleship", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -36,20 +36,18 @@ namespace Client
             {
                 clientSocket.EndReceive(ar);
 
-                Data msgReceived = new Data(byteData);
+                var msgReceived = new Data(byteData);
                 //Accordingly process the message received
                 switch (msgReceived.Command)
                 {
                     case Command.Error:
-                        MessageBox.Show(msgReceived.Message, "Battleship: Login", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        MessageBox.Show(msgReceived.Message, @"Battleship: Login", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         break;
                     case Command.User:
                         user = new User(msgReceived.Message);
                         //DialogResult = DialogResult.OK;
+                        var mainForm = new Main_Form { clientSocket = clientSocket, user = user, parent = this };
                         Hide();
-                        var mainForm = new Main_Form();
-                        mainForm.clientSocket = clientSocket;
-                        mainForm.user = user;
                         mainForm.ShowDialog();
                         Show();
                         break;
@@ -60,7 +58,7 @@ namespace Client
             { }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message, "Battleship client: ", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(ex.Message, @"Battleship client: ", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -71,19 +69,21 @@ namespace Client
                 clientSocket.EndConnect(ar);
 
                 //We are connected so we login into the server
-                Data msgToSend = new Data();
-                msgToSend.Command = Command.Login;
-                msgToSend.Name = textBox_Name.Text;
-                msgToSend.Password = textBox_Password.Text;
+                var msgToSend = new Data
+                {
+                    Command = Command.Login,
+                    Name = textBox_Name.Text,
+                    Password = textBox_Password.Text
+                };
 
                 byte[] b = msgToSend.ToByte();
 
                 //Send the message to the server
-                clientSocket.BeginSend(b, 0, b.Length, SocketFlags.None, OnSend, null);
+                clientSocket.BeginSend(b, 0, b.Length, SocketFlags.None, OnSend, clientSocket);
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message, "Battleship", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(ex.Message, @"Battleship", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -106,12 +106,14 @@ namespace Client
             {
                 clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
-                IPAddress ipAddress = IPAddress.Parse("127.0.0.1");
+                var ipAddress = IPAddress.Parse("127.0.0.1");
+                //var ipAddress = IPAddress.Parse("192.168.1.77");
+                //var ipAddress = IPAddress.Parse("191.235.144.25"); cloudapp
                 //Server is listening on port 1000
-                IPEndPoint ipEndPoint = new IPEndPoint(ipAddress, 8000);
+                var ipEndPoint = new IPEndPoint(ipAddress, 8000);
 
                 //Connect to the server
-                clientSocket.BeginConnect(ipEndPoint, OnConnect, null);
+                clientSocket.BeginConnect(ipEndPoint, OnConnect, clientSocket);
 
                 byteData = new byte[1024];
                 //Start listening to the data asynchronously
@@ -120,11 +122,11 @@ namespace Client
                                            byteData.Length,
                                            SocketFlags.None,
                                            OnReceive,
-                                           null);
+                                           clientSocket);
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message, "Battleship", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(ex.Message, @"Battleship", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 

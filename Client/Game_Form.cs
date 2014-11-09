@@ -18,6 +18,8 @@ namespace Client
         public User user;
         public User opponent;
         private byte[] byteData = new byte[1024];
+        public Main_Form parent;
+
         public Game_Form()
         {
             InitializeComponent();
@@ -27,6 +29,10 @@ namespace Client
         {
             label_OwnName.Text = user.name;
             label_OpponentName.Text = opponent.name;
+        }
+
+        private void Game_Form_FormClosing(object sender, FormClosingEventArgs e)
+        {
         }
     }
 }

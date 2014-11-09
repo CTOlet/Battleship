@@ -13,9 +13,11 @@ namespace Client
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            var loginForm = new Login_Form();
-            loginForm.Show();
-            Application.Run();
+            var gameForm = new GameForm();
+            Application.Run(gameForm);
+            //var loginForm = new Login_Form();
+            //loginForm.Show();
+            //Application.Run();
             //if (loginForm.DialogResult == DialogResult.OK)
             //{
             //    var mainForm = new Main_Form();

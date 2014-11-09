@@ -60,7 +60,7 @@ namespace Server
                 serverSocket.Listen(4);
 
                 //Accept the incoming clients
-                serverSocket.BeginAccept(OnAccept, null);
+                serverSocket.BeginAccept(OnAccept, serverSocket);
                 txtLog.Text += string.Format("[{0}] The server is listening on port 8000\r\n", DateTime.Now.ToString("hh:mm:ss"));
             }
             catch (Exception ex)
@@ -77,7 +77,7 @@ namespace Server
                 Socket clientSocket = serverSocket.EndAccept(ar);
 
                 //Start listening for more clients
-                serverSocket.BeginAccept(OnAccept, null);
+                serverSocket.BeginAccept(OnAccept, serverSocket);
 
                 //Once the client connects then start receiving the commands from her
                 clientSocket.BeginReceive(byteData, 0, byteData.Length, SocketFlags.None,
@@ -201,6 +201,7 @@ namespace Server
                             Game game = new Game();
                             game.player1 = findingList[0];
                             game.player2 = findingList[1];
+                            findingList.RemoveRange(0, 2);
 
                             games.Add(game);
                             txtLog.Text += string.Format("[{0}] Connecting {1} with {2}...\r\n", DateTime.Now.ToString("hh:mm:ss"), game.player1.name, game.player2.name);
@@ -209,11 +210,11 @@ namespace Server
 
                             message = msgToSend.ToByte(UserDAO.FindByName(game.player2.name));
                             game.player1.socket.BeginSend(message, 0, message.Length, SocketFlags.None,
-                                OnSend, null);
+                                OnSend, game.player1.socket);
 
                             message = msgToSend.ToByte(UserDAO.FindByName(game.player1.name));
                             game.player2.socket.BeginSend(message, 0, message.Length, SocketFlags.None,
-                                OnSend, null);
+                                OnSend, game.player2.socket);
                         }
                         clientSocket.BeginReceive(byteData, 0, byteData.Length, SocketFlags.None, OnReceive, clientSocket);
                         break;
@@ -279,23 +280,14 @@ namespace Server
 
         private void timer1_Tick(object sender, EventArgs e)
         {
-            listBox_GamesList.Items.Clear();
-            foreach (var game in games.ToList())
-            {
-                listBox_GamesList.Items.Add(string.Format("{0} - {1}", game.player1.name, game.player2.name));
-            }
+            groupBox_Games.Text = string.Format("Games [{0}]", games.Count.ToString());
+            listBox_GamesList.DataSource = games.Select(x => string.Format("{0} - {1}", x.player1.name, x.player2.name)).ToList();
 
-            listBox_QueueList.Items.Clear();
-            foreach (var client in findingList)
-            {
-                listBox_QueueList.Items.Add(string.Format("{0}", client.name));
-            }
+            groupBox_Queue.Text = string.Format("Queue [{0}]", findingList.Count.ToString());
+            listBox_QueueList.DataSource = findingList.Select(x => string.Format("{0}", x.name)).ToList();
 
-            listBox_OnlineList.Items.Clear();
-            foreach (ClientInfo clientInfo in clientList)
-            {
-                listBox_OnlineList.Items.Add(string.Format("{0}", clientInfo.name));
-            }
+            groupBox_Online.Text = string.Format("Online [{0}]", clientList.Count.ToString());
+            listBox_OnlineList.DataSource = clientList.Select(x => string.Format("{0}", x.name)).ToList();
         }
     }
 }

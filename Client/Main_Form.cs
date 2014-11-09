@@ -1,13 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
 using System.Net.Sockets;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using Classes;
 
@@ -19,7 +11,8 @@ namespace Client
         public User user;
         public User opponent;
         private byte[] byteData = new byte[1024];
-        public bool appClose = true;
+        public string closeAction = "close";
+        public Login_Form parent;
 
         public Main_Form()
         {
@@ -36,7 +29,7 @@ namespace Client
             { }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message, "Battleship", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(ex.Message, @"Battleship", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -46,18 +39,18 @@ namespace Client
             {
                 clientSocket.EndReceive(ar);
 
-                Data msgReceived = new Data(byteData);
+                var msgReceived = new Data(byteData);
                 //Accordingly process the message received
                 switch (msgReceived.Command)
                 {
                     case Command.GameFound:
                         opponent = new User(msgReceived.Message);
-                        appClose = false;
+                        closeAction = "hide";
                         Hide();
-                        var gameForm = new Game_Form { clientSocket = clientSocket, user = user, opponent = opponent };
+                        var gameForm = new Game_Form { clientSocket = clientSocket, user = user, opponent = opponent, parent = this};
+                        clientSocket.EndSend(ar);
                         gameForm.ShowDialog();
                         Show();
-                        appClose = true;
                         break;
                 }
 
@@ -70,8 +63,72 @@ namespace Client
             { }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message, "Battleship", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(ex.Message, @"Battleship", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+
+        private void button_FindGame_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                //Fill the info for the message to be send
+                var msgToSend = new Data {Command = Command.FindGame};
+
+                var byteData = msgToSend.ToByte();
+
+                //Send it to the server
+                //clientSocket.BeginSend(byteData, 0, byteData.Length, SocketFlags.None, OnSend, null);
+                clientSocket.Send(byteData);
+
+                //txtMessage.Text = null;
+            }
+            catch (Exception)
+            {
+                MessageBox.Show(@"Unable to send message to the server.", @"Battleship", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void Main_Form_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            if (closeAction != "logout" && closeAction != "close") return;
+            if (closeAction == "close")
+            {
+                Application.Exit();
+            }
+
+            if (MessageBox.Show(@"Are you sure you want to leave the game?", @"Battleship",
+                MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation) == DialogResult.No)
+            {
+                e.Cancel = true;
+                return;
+            }
+
+            try
+            {
+                //Send a message to logout of the server
+                var msgToSend = new Data {Command = Command.Logout, Name = user.name};
+                var b = msgToSend.ToByte();
+                clientSocket.Send(b);
+                clientSocket.Close();
+
+                if (closeAction == "logout")
+                {
+                    parent.Show();
+                }
+            }
+            catch (ObjectDisposedException)
+            {
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.Message, @"Battleship", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void button_Logout_Click(object sender, EventArgs e)
+        {
+            closeAction = "logout";
+            Close();
         }
 
         private void Main_Form_Load(object sender, EventArgs e)
@@ -84,71 +141,6 @@ namespace Client
             byteData = new byte[1024];
             //Start listening to the data asynchronously
             clientSocket.BeginReceive(byteData, 0, byteData.Length, SocketFlags.None, OnReceive, clientSocket);
-        }
-
-        private void button_FindGame_Click(object sender, EventArgs e)
-        {
-            try
-            {
-                //Fill the info for the message to be send
-                Data msgToSend = new Data();
-
-                msgToSend.Command = Command.FindGame;
-
-                byte[] byteData = msgToSend.ToByte();
-
-                //Send it to the server
-                //clientSocket.BeginSend(byteData, 0, byteData.Length, SocketFlags.None, OnSend, null);
-                clientSocket.Send(byteData);
-
-                //txtMessage.Text = null;
-            }
-            catch (Exception)
-            {
-                MessageBox.Show("Unable to send message to the server.", "Battleship", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-
-        private void Main_Form_FormClosing(object sender, FormClosingEventArgs e)
-        {
-            if (appClose == true)
-            {
-                Application.Exit();
-            }
-
-            if (appClose == true && MessageBox.Show("Are you sure you want to leave the game?", "Battleship",
-                MessageBoxButtons.YesNo, MessageBoxIcon.Exclamation) == DialogResult.No)
-            {
-                e.Cancel = true;
-                return;
-            }
-
-            try
-            {
-                //Send a message to logout of the server
-                Data msgToSend = new Data();
-                msgToSend.Command = Command.Logout;
-                msgToSend.Name = user.name;
-
-                byte[] b = msgToSend.ToByte();
-                clientSocket.Send(b);
-                //clientSocket.BeginSend(byteData, 0, byteData.Length, SocketFlags.None, OnSend, clientSocket);
-                //Thread.Sleep(100);
-                clientSocket.Close();
-            }
-            catch (ObjectDisposedException)
-            {
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message, "Battleship", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-
-        private void button_Logout_Click(object sender, EventArgs e)
-        {
-            appClose = false;
-            Close();
         }
     }
 }
