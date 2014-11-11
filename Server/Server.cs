@@ -6,7 +6,6 @@ using System.Net;
 using System.Net.Sockets;
 using System.Windows.Forms;
 using Classes;
-using MySql.Data.MySqlClient.Memcached;
 
 namespace Server
 {
@@ -19,12 +18,6 @@ namespace Server
             clientList = new List<ClientInfo>();
             findingList = new List<ClientInfo>();
             games = new List<Game>();
-        }
-
-        public struct ClientInfo
-        {
-            public Socket socket;   //Socket of the client
-            public string name;  //Name by which the user logged into the chat room
         }
 
         //The collection of all clients logged into the room (an array of type ClientInfo)
@@ -177,6 +170,9 @@ namespace Server
                         //in the list of clients and close the corresponding connection
                         clientList.RemoveAll(x => x.socket == clientSocket);
                         findingList.RemoveAll(x => x.socket == clientSocket);
+                        games.RemoveAll(x => x.player1.socket == clientSocket || x.player2.socket == clientSocket);
+                        // TODO: Notificate opponent about leave game by user
+                        // TODO: Recalc rank of the users
 
                         clientSocket.Close();
 
@@ -201,6 +197,7 @@ namespace Server
                             Game game = new Game();
                             game.player1 = findingList[0];
                             game.player2 = findingList[1];
+                            game.player1.ready = game.player2.ready = false;
                             findingList.RemoveRange(0, 2);
 
                             games.Add(game);
@@ -218,46 +215,87 @@ namespace Server
                         }
                         clientSocket.BeginReceive(byteData, 0, byteData.Length, SocketFlags.None, OnReceive, clientSocket);
                         break;
-
-                    case Command.List:
-
-                        //Send the names of all users in the chat room to the new user
-                        msgToSend.Command = Command.List;
-                        msgToSend.Name = null;
-                        msgToSend.Message = null;
-
-                        //Collect the names of the user in the chat room
-                        foreach (ClientInfo client in clientList)
+                    case Command.Ready:
+                        foreach (var game in games)
                         {
-                            //To keep things simple we use asterisk as the marker to separate the user names
-                            msgToSend.Message += client.name + "*";
+                            if (game.player1.socket == clientSocket)
+                            {
+                                game.player1.ready = true;
+                                game.player1.board = new Board(msgReceived.Message);
+                            } else if (game.player2.socket == clientSocket)
+                            {
+                                game.player2.ready = true;
+                                game.player2.board = new Board(msgReceived.Message);
+                            }
+                            if (game.player1.ready && game.player2.ready)
+                            {
+                                msgToSend.Command = Command.StartGame;
+                                message = msgToSend.ToByte();
+                                game.player1.socket.BeginSend(message, 0, message.Length, SocketFlags.None,
+                                    OnSend, game.player1.socket);
+                                game.player2.socket.BeginSend(message, 0, message.Length, SocketFlags.None,
+                                    OnSend, game.player2.socket);
+
+                                msgToSend.Command = Command.Turn;
+                                message = msgToSend.ToByte();
+                                game.player1.socket.BeginSend(message, 0, message.Length, SocketFlags.None,
+                                    OnSend, game.player1.socket);
+                            }
                         }
+                        clientSocket.BeginReceive(byteData, 0, byteData.Length, SocketFlags.None, OnReceive, clientSocket);
+                        break;
+                    case Command.Shot:
+                        foreach (var game in games)
+                        {
+                            if (game.player1.socket == clientSocket)
+                            {
+                                // send result of the shot back to the client
+                                switch (game.player2.board.matrix[msgReceived.X, msgReceived.Y])
+                                {
+                                    case Cell.Empty:
+                                        msgToSend.Cell = Cell.Miss;
+                                        break;
+                                    case Cell.Ship:
+                                        msgToSend.Cell = Cell.Hit;
+                                        break;
+                                }
+                                msgToSend.Command = Command.ShotResult;
+                                message = msgToSend.ToByte();
+                                clientSocket.BeginSend(message, 0, message.Length, SocketFlags.None,
+                                            OnSend, clientSocket);
 
-                        message = msgToSend.ToByte();
+                                // send to opponent shot
+                                msgToSend = msgReceived;
+                                message = msgToSend.ToByte();
+                                game.player2.socket.BeginSend(message, 0, message.Length, SocketFlags.None,
+                                    OnSend, game.player2.socket);
+                            } else if (game.player2.socket == clientSocket)
+                            {
+                                // send result of the shot back to the client
+                                switch (game.player1.board.matrix[msgReceived.X, msgReceived.Y])
+                                {
+                                    case Cell.Empty:
+                                        msgToSend.Cell = Cell.Miss;
+                                        break;
+                                    case Cell.Ship:
+                                        msgToSend.Cell = Cell.Hit;
+                                        break;
+                                }
+                                msgToSend.Command = Command.ShotResult;
+                                message = msgToSend.ToByte();
+                                clientSocket.BeginSend(message, 0, message.Length, SocketFlags.None,
+                                            OnSend, clientSocket);
 
-                        //Send the name of the users in the chat room
-                        clientSocket.BeginSend(message, 0, message.Length, SocketFlags.None,
-                                OnSend, clientSocket);
+                                // send to opponent shot
+                                msgToSend = msgReceived;
+                                message = msgToSend.ToByte();
+                                game.player1.socket.BeginSend(message, 0, message.Length, SocketFlags.None,
+                                    OnSend, game.player1.socket);
+                            }
+                        }
+                        clientSocket.BeginReceive(byteData, 0, byteData.Length, SocketFlags.None, OnReceive, clientSocket);
                         break;
                 }
-
-                //if (msgToSend.Command != Command.List)   //List messages are not broadcasted
-                //{
-                //    message = msgToSend.ToByte();
-
-                //    foreach (ClientInfo clientInfo in clientList)
-                //    {
-                //        if (clientInfo.socket != clientSocket ||
-                //            msgToSend.Command != Command.Login)
-                //        {
-                //            //Send the message to all users
-                //            clientInfo.socket.BeginSend(message, 0, message.Length, SocketFlags.None,
-                //                new AsyncCallback(OnSend), clientInfo.socket);
-                //        }
-                //    }
-
-                //    txtLog.Text += msgToSend.Message + "\r\n";
-                //}
             }
             catch (Exception ex)
             {

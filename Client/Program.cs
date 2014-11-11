@@ -15,17 +15,6 @@ namespace Client
             Application.SetCompatibleTextRenderingDefault(false);
             var gameForm = new GameForm();
             Application.Run(gameForm);
-            //var loginForm = new Login_Form();
-            //loginForm.Show();
-            //Application.Run();
-            //if (loginForm.DialogResult == DialogResult.OK)
-            //{
-            //    var mainForm = new Main_Form();
-            //    mainForm.clientSocket = loginForm.clientSocket;
-            //    mainForm.user = loginForm.user;
-
-            //    mainForm.ShowDialog();
-            //}
         }
     }
 }

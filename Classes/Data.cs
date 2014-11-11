@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 
 namespace Classes
 {
-    enum Command
+    public enum Command
     {
         Login,      //Log into the server
         Logout,     //Logout of the server
@@ -17,11 +18,24 @@ namespace Classes
         User,
         FindGame,
         GameFound,
+        Ready,
+        StartGame,
+        Turn,
+        Shot,
+        ShotResult
+    }
+
+    public struct ClientInfo
+    {
+        public Socket socket;   //Socket of the client
+        public string name;  //Name by which the user logged into the chat room
+        public bool ready;
+        public Board board;
     }
 
     //The data structure by which the server and the client interact with 
     //each other
-    class Data
+    public class Data
     {
         //Default constructor
         public Data()
@@ -101,6 +115,21 @@ namespace Classes
                     msgLen = BitConverter.ToInt32(data, 4);
 
                     Message = msgLen > 0 ? Encoding.UTF8.GetString(data, 8, msgLen) : null;
+                    break;
+                case Command.Ready:
+                    //The next four store the length of the message json
+                    msgLen = BitConverter.ToInt32(data, 4);
+
+                    Message = msgLen > 0 ? Encoding.UTF8.GetString(data, 8, msgLen) : null;
+                    break;
+                case Command.StartGame:
+                    break;
+                case Command.Shot:
+                    X = BitConverter.ToInt32(data, 4);
+                    Y = BitConverter.ToInt32(data, 8);
+                    break;
+                case Command.ShotResult:
+                    Cell = (Cell) BitConverter.ToInt32(data, 4);
                     break;
             }
         }
@@ -194,6 +223,25 @@ namespace Classes
                     if (Message != null)
                         result.AddRange(Encoding.UTF8.GetBytes(Message));
                     break;
+                case Command.Ready:
+                    var board = obj as Board;
+                    if (board != null) Message = board.ToJson();
+
+                    result.AddRange(Message != null ? BitConverter.GetBytes(Message.Length) : BitConverter.GetBytes(0));
+
+                    //Add the message
+                    if (Message != null)
+                        result.AddRange(Encoding.UTF8.GetBytes(Message));
+                    break;
+                case Command.StartGame:
+                    break;
+                case Command.Shot:
+                    result.AddRange(BitConverter.GetBytes(X));
+                    result.AddRange(BitConverter.GetBytes(Y));
+                    break;
+                case Command.ShotResult:
+                    result.AddRange(BitConverter.GetBytes((int)Cell));
+                    break;
             }
 
             return result.ToArray();
@@ -204,5 +252,8 @@ namespace Classes
         public string Message;   //Message text
         public User User;
         public Command Command;  //Command type (login, logout, send message, etcetera)
+        public int X;
+        public int Y;
+        public Cell Cell;
     }
 }

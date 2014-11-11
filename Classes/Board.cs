@@ -4,13 +4,21 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 
 namespace Classes
 {
-    class Board
+    public enum Cell
+    {
+        Empty,
+        Miss,
+        Ship,
+        Hit
+    };
+    public class Board
     {
         public Cell[,] matrix = new Cell[10, 10];
-        private bool[,] used = new bool[10, 10];
+        public bool[,] used = new bool[10, 10];
 
         public Board()
         {
@@ -21,6 +29,11 @@ namespace Classes
                     matrix[i, j] = Cell.Empty;
                 }
             }
+        }
+
+        public Board(string json)
+        {
+            matrix = JsonConvert.DeserializeObject<Cell[,]>(json);
         }
 
         public void ArrangeShip(TupleList<int, int> cells)
@@ -116,7 +129,7 @@ namespace Classes
             return true;
         }
 
-        private void InitializeUsed()
+        public void InitializeUsed()
         {
             for (int i = 0; i < 10; i++)
             {
@@ -127,16 +140,11 @@ namespace Classes
             }
         }
 
-        //public Cell[,] Matrix { get; set; }
+        public string ToJson()
+        {
+            return JsonConvert.SerializeObject(matrix);
+        }
     }
-
-    enum Cell
-    {
-        Empty,
-        Miss,
-        Ship,
-        Hit
-    };
 
     public class TupleList<T1, T2> : List<Tuple<T1, T2>>
     {

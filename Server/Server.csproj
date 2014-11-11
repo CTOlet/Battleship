@@ -48,21 +48,6 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="..\Classes\Data.cs">
-      <Link>Data.cs</Link>
-    </Compile>
-    <Compile Include="..\Classes\DBConnect.cs">
-      <Link>DBConnect.cs</Link>
-    </Compile>
-    <Compile Include="..\Classes\Game.cs">
-      <Link>Game.cs</Link>
-    </Compile>
-    <Compile Include="..\Classes\User.cs">
-      <Link>User.cs</Link>
-    </Compile>
-    <Compile Include="..\Classes\UserDAO.cs">
-      <Link>UserDAO.cs</Link>
-    </Compile>
     <Compile Include="Server.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -95,6 +80,12 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Classes\Classes.csproj">
+      <Project>{fa457de4-c2b0-4e48-9ef7-6e39471dfce2}</Project>
+      <Name>Classes</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

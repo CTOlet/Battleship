@@ -7,11 +7,9 @@ using System.Threading.Tasks;
 
 namespace Classes
 {
-    class Game
+    public class Game
     {
-        public Server.Server.ClientInfo player1;
-        public Server.Server.ClientInfo player2;
-
-
+        public ClientInfo player1;
+        public ClientInfo player2;
     }
 }

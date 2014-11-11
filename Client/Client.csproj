@@ -35,6 +35,7 @@
     <Reference Include="MySql.Data, Version=6.9.4.0, Culture=neutral, PublicKeyToken=c5687fc88969c44d, processorArchitecture=MSIL" />
     <Reference Include="Newtonsoft.Json">
       <HintPath>..\Classes\Newtonsoft.Json.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -54,8 +55,17 @@
     <Compile Include="..\Classes\Data.cs">
       <Link>Data.cs</Link>
     </Compile>
+    <Compile Include="..\Classes\History.cs">
+      <Link>History.cs</Link>
+    </Compile>
     <Compile Include="..\Classes\User.cs">
       <Link>User.cs</Link>
+    </Compile>
+    <Compile Include="BufferedPanel.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Include="BufferedPanel.Designer.cs">
+      <DependentUpon>BufferedPanel.cs</DependentUpon>
     </Compile>
     <Compile Include="GameForm.cs">
       <SubType>Form</SubType>
@@ -63,46 +73,10 @@
     <Compile Include="GameForm.Designer.cs">
       <DependentUpon>GameForm.cs</DependentUpon>
     </Compile>
-    <Compile Include="Game_Form.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Game_Form.Designer.cs">
-      <DependentUpon>Game_Form.cs</DependentUpon>
-    </Compile>
-    <Compile Include="LoginPage.cs">
-      <SubType>UserControl</SubType>
-    </Compile>
-    <Compile Include="LoginPage.Designer.cs">
-      <DependentUpon>LoginPage.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Login_Form.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Login_Form.Designer.cs">
-      <DependentUpon>Login_Form.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Main_Form.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Main_Form.Designer.cs">
-      <DependentUpon>Main_Form.cs</DependentUpon>
-    </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <EmbeddedResource Include="GameForm.resx">
       <DependentUpon>GameForm.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Game_Form.resx">
-      <DependentUpon>Game_Form.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="LoginPage.resx">
-      <DependentUpon>LoginPage.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Login_Form.resx">
-      <DependentUpon>Login_Form.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Main_Form.resx">
-      <DependentUpon>Main_Form.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>ResXFileCodeGenerator</Generator>
@@ -112,6 +86,7 @@
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
+      <DesignTime>True</DesignTime>
     </Compile>
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
@@ -125,6 +100,27 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Sounds\explosion.wav" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Sounds\explosion_finish.wav" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Sounds\explosion_other.wav" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Sounds\loose.wav" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Sounds\message.wav" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Sounds\miss.wav" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Sounds\win.wav" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

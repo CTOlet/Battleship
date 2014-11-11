@@ -3,7 +3,7 @@ using System.Data;
 
 namespace Classes
 {
-    class UserDAO
+    public class UserDAO
     {
         public static User Login(string name, string password)
         {
