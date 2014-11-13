@@ -13,7 +13,8 @@ namespace Classes
         Empty,
         Miss,
         Ship,
-        Hit
+        Hit,
+        LastHit
     };
     public class Board
     {
@@ -44,14 +45,14 @@ namespace Classes
             }
         }
 
-        public bool isDestroyed(int x, int y)
+        public bool IsDestroyed(int x, int y)
         {
-            if (countAliveCells(x, y) > 0) return false;
+            if (CountAliveCells(x, y) > 0) return false;
 
             return true;
         }
 
-        public int countAliveCells(int x, int y, int sum = 0, bool isFirstIteration = true)
+        public int CountAliveCells(int x, int y, int sum = 0, bool isFirstIteration = true)
         {
             if (isFirstIteration)
             {
@@ -61,36 +62,36 @@ namespace Classes
             used[x, y] = true;
             if (x > 0 && !used[x - 1, y] && matrix[x - 1, y] != Cell.Empty && matrix[x - 1, y] != Cell.Miss)
             {
-                sum += countAliveCells(x - 1, y, sum, false);
+                sum += CountAliveCells(x - 1, y, sum, false);
             }
             if (x < 9 && !used[x + 1, y] && matrix[x + 1, y] != Cell.Empty && matrix[x + 1, y] != Cell.Miss)
             {
-                sum += countAliveCells(x + 1, y, sum, false);
+                sum += CountAliveCells(x + 1, y, sum, false);
             }
             if (y > 0 && !used[x, y - 1] && matrix[x, y - 1] != Cell.Empty && matrix[x, y - 1] != Cell.Miss)
             {
-                sum += countAliveCells(x, y - 1, sum, false);
+                sum += CountAliveCells(x, y - 1, sum, false);
             }
             if (y < 9 && !used[x, y + 1] && matrix[x, y + 1] != Cell.Empty && matrix[x, y + 1] != Cell.Miss)
             {
-                sum += countAliveCells(x, y + 1, sum, false);
+                sum += CountAliveCells(x, y + 1, sum, false);
             }
 
             if (x > 0 && y > 0 && !used[x - 1, y - 1] && matrix[x - 1, y - 1] != Cell.Empty && matrix[x - 1, y - 1] != Cell.Miss)
             {
-                sum += countAliveCells(x - 1, y - 1, sum, false);
+                sum += CountAliveCells(x - 1, y - 1, sum, false);
             }
             if (x > 0 && y < 9 && !used[x - 1, y + 1] && matrix[x - 1, y + 1] != Cell.Empty && matrix[x - 1, y + 1] != Cell.Miss)
             {
-                sum += countAliveCells(x - 1, y + 1, sum, false);
+                sum += CountAliveCells(x - 1, y + 1, sum, false);
             }
             if (x < 9 && y > 0 && !used[x + 1, y - 1] && matrix[x + 1, y - 1] != Cell.Empty && matrix[x + 1, y - 1] != Cell.Miss)
             {
-                sum += countAliveCells(x + 1, y - 1, sum, false);
+                sum += CountAliveCells(x + 1, y - 1, sum, false);
             }
             if (x < 9 && y < 9 && !used[x + 1, y + 1] && matrix[x + 1, y + 1] != Cell.Empty && matrix[x + 1, y + 1] != Cell.Miss)
             {
-                sum += countAliveCells(x + 1, y + 1, sum, false);
+                sum += CountAliveCells(x + 1, y + 1, sum, false);
             }
 
             if (matrix[x, y] == Cell.Ship)
@@ -98,6 +99,19 @@ namespace Classes
                 sum++;
             }
             return sum;
+        }
+
+        public bool IsAllDestroyed()
+        {
+            for (int i = 0; i < 10; i++)
+            {
+                for (int j = 0; j < 10; j++)
+                {
+                    if (matrix[i, j] == Cell.Ship) return false;
+                }
+            }
+
+            return true;
         }
 
         public bool CheckShipsArrangement()
@@ -111,7 +125,7 @@ namespace Classes
                 {
                     if (!used[i, j])
                     {
-                        int shipSize = countAliveCells(i, j, 0, false);
+                        int shipSize = CountAliveCells(i, j, 0, false);
                         if (ships.Count == 0 && shipSize > 0)
                         {
                             return false;
@@ -143,6 +157,147 @@ namespace Classes
         public string ToJson()
         {
             return JsonConvert.SerializeObject(matrix);
+        }
+
+        //public TupleList<int, int> RoundShip(int x, int y, bool firstIteration = false)
+        //{
+        //    var list = new TupleList<int, int>();
+        //    if (firstIteration) InitializeUsed();
+
+        //    //if (x < 0 || x > 9 || y < 0 || y > 9) return;
+        //    //if (matrix[x, y] == Cell.Miss) return;
+        //    used[x, y] = true;
+
+        //    if (x > 0 && y > 0 && !used[x - 1, y - 1])
+        //    {
+        //        if (matrix[x - 1, y - 1] == Cell.Hit) list.AddRange(RoundShip(x - 1, y - 1));
+        //        else
+        //        {
+        //            matrix[x - 1, y - 1] = Cell.Miss;
+        //            list.Add(new Tuple<int, int>(x - 1, y - 1));
+        //        }
+        //    }
+        //    if (x > 0 && !used[x - 1, y])
+        //    {
+
+        //        if (matrix[x - 1, y] == Cell.Hit) list.AddRange(RoundShip(x - 1, y));
+        //        else
+        //        {
+        //            matrix[x - 1, y] = Cell.Miss;
+        //            list.Add(new Tuple<int, int>(x - 1, y));
+        //        }
+        //    }
+        //    if (x > 0 && y < 9 && !used[x - 1, y + 1])
+        //    {
+        //        if (matrix[x - 1, y + 1] == Cell.Hit) list.AddRange(RoundShip(x - 1, y + 1));
+        //        else
+        //        {
+        //            matrix[x - 1, y + 1] = Cell.Miss;
+        //            list.Add(new Tuple<int, int>(x - 1, y + 1));
+        //        }
+        //    }
+
+        //    if (x < 9 && y > 0 && !used[x + 1, y - 1])
+        //    {
+        //        if (matrix[x + 1, y - 1] == Cell.Hit) list.AddRange(RoundShip(x + 1, y - 1));
+        //        else
+        //        {
+        //            matrix[x + 1, y - 1] = Cell.Miss;
+        //            list.Add(new Tuple<int, int>(x + 1, y - 1));
+        //        }
+        //    }
+        //    if (x < 9 && !used[x + 1, y])
+        //    {
+        //        if (matrix[x + 1, y] == Cell.Hit) list.AddRange(RoundShip(x + 1, y));
+        //        else
+        //        {
+        //            matrix[x + 1, y] = Cell.Miss;
+        //            list.Add(new Tuple<int, int>(x + 1, y));
+        //        }
+        //    }
+        //    if (x < 9 && y < 9 && !used[x + 1, y + 1])
+        //    {
+        //        if (matrix[x + 1, y + 1] == Cell.Hit) list.AddRange(RoundShip(x + 1, y + 1));
+        //        else
+        //        {
+        //            matrix[x + 1, y + 1] = Cell.Miss;
+        //            list.Add(new Tuple<int, int>(x + 1, y + 1));
+        //        }
+        //    }
+
+        //    if (y > 0 && !used[x, y - 1])
+        //    {
+        //        if (matrix[x, y - 1] == Cell.Hit) list.AddRange(RoundShip(x, y - 1));
+        //        else
+        //        {
+        //            matrix[x, y - 1] = Cell.Miss;
+        //            list.Add(new Tuple<int, int>(x, y - 1));
+        //        }
+        //    }
+        //    if (y < 9 && !used[x, y + 1])
+        //    {
+        //        if (matrix[x, y + 1] == Cell.Hit) list.AddRange(RoundShip(x, y + 1));
+        //        else
+        //        {
+        //            matrix[x, y + 1] = Cell.Miss;
+        //            list.Add(new Tuple<int, int>(x, y + 1));
+        //        }
+        //    }
+
+        //    return list;
+        //}
+
+        public void RoundShip(int x, int y, bool firstIteration = false)
+        {
+            if (firstIteration) InitializeUsed();
+
+            //if (x < 0 || x > 9 || y < 0 || y > 9) return;
+            //if (matrix[x, y] == Cell.Miss) return;
+            used[x, y] = true;
+
+            if (x > 0 && y > 0 && !used[x - 1, y - 1])
+            {
+                if (matrix[x - 1, y - 1] == Cell.Hit) RoundShip(x - 1, y - 1);
+                else matrix[x - 1, y - 1] = Cell.Miss;
+            }
+            if (x > 0 && !used[x - 1, y])
+            {
+
+                if (matrix[x - 1, y] == Cell.Hit) RoundShip(x - 1, y);
+                else matrix[x - 1, y] = Cell.Miss;
+            }
+            if (x > 0 && y < 9 && !used[x - 1, y + 1])
+            {
+                if (matrix[x - 1, y + 1] == Cell.Hit) RoundShip(x - 1, y + 1);
+                else matrix[x - 1, y + 1] = Cell.Miss;
+            }
+
+            if (x < 9 && y > 0 && !used[x + 1, y - 1])
+            {
+                if (matrix[x + 1, y - 1] == Cell.Hit) RoundShip(x + 1, y - 1);
+                else matrix[x + 1, y - 1] = Cell.Miss;
+            }
+            if (x < 9 && !used[x + 1, y])
+            {
+                if (matrix[x + 1, y] == Cell.Hit) RoundShip(x + 1, y);
+                else matrix[x + 1, y] = Cell.Miss;
+            }
+            if (x < 9 && y < 9 && !used[x + 1, y + 1])
+            {
+                if (matrix[x + 1, y + 1] == Cell.Hit) RoundShip(x + 1, y + 1);
+                else matrix[x + 1, y + 1] = Cell.Miss;
+            }
+
+            if (y > 0 && !used[x, y - 1])
+            {
+                if (matrix[x, y - 1] == Cell.Hit) RoundShip(x, y - 1);
+                else matrix[x, y - 1] = Cell.Miss;
+            }
+            if (y < 9 && !used[x, y + 1])
+            {
+                if (matrix[x, y + 1] == Cell.Hit) RoundShip(x, y + 1);
+                else matrix[x, y + 1] = Cell.Miss;
+            }
         }
     }
 

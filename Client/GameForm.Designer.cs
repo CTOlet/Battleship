@@ -33,8 +33,10 @@
             this.button_register_LoginPage = new System.Windows.Forms.Button();
             this.button_login_LoginPage = new System.Windows.Forms.Button();
             this.label_password_LoginPage = new System.Windows.Forms.Label();
+            this.label_serverTitle_LoginPage = new System.Windows.Forms.Label();
             this.label_nameTitle_LoginPage = new System.Windows.Forms.Label();
             this.textBox_password_LoginPage = new System.Windows.Forms.TextBox();
+            this.textBox_server_LoginPage = new System.Windows.Forms.TextBox();
             this.textBox_name_LoginPage = new System.Windows.Forms.TextBox();
             this.tab_main = new System.Windows.Forms.TabPage();
             this.label_ratingTitle_MainPage = new System.Windows.Forms.Label();
@@ -82,8 +84,10 @@
             this.tab_login.Controls.Add(this.button_register_LoginPage);
             this.tab_login.Controls.Add(this.button_login_LoginPage);
             this.tab_login.Controls.Add(this.label_password_LoginPage);
+            this.tab_login.Controls.Add(this.label_serverTitle_LoginPage);
             this.tab_login.Controls.Add(this.label_nameTitle_LoginPage);
             this.tab_login.Controls.Add(this.textBox_password_LoginPage);
+            this.tab_login.Controls.Add(this.textBox_server_LoginPage);
             this.tab_login.Controls.Add(this.textBox_name_LoginPage);
             this.tab_login.Location = new System.Drawing.Point(4, 22);
             this.tab_login.Name = "tab_login";
@@ -123,6 +127,16 @@
             this.label_password_LoginPage.TabIndex = 8;
             this.label_password_LoginPage.Text = "Password";
             // 
+            // label_serverTitle_LoginPage
+            // 
+            this.label_serverTitle_LoginPage.AutoSize = true;
+            this.label_serverTitle_LoginPage.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            this.label_serverTitle_LoginPage.Location = new System.Drawing.Point(202, 114);
+            this.label_serverTitle_LoginPage.Name = "label_serverTitle_LoginPage";
+            this.label_serverTitle_LoginPage.Size = new System.Drawing.Size(55, 20);
+            this.label_serverTitle_LoginPage.TabIndex = 7;
+            this.label_serverTitle_LoginPage.Text = "Server";
+            // 
             // label_nameTitle_LoginPage
             // 
             this.label_nameTitle_LoginPage.AutoSize = true;
@@ -141,6 +155,15 @@
             this.textBox_password_LoginPage.Size = new System.Drawing.Size(142, 26);
             this.textBox_password_LoginPage.TabIndex = 6;
             this.textBox_password_LoginPage.Text = "123";
+            // 
+            // textBox_server_LoginPage
+            // 
+            this.textBox_server_LoginPage.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            this.textBox_server_LoginPage.Location = new System.Drawing.Point(286, 111);
+            this.textBox_server_LoginPage.Name = "textBox_server_LoginPage";
+            this.textBox_server_LoginPage.Size = new System.Drawing.Size(142, 26);
+            this.textBox_server_LoginPage.TabIndex = 5;
+            this.textBox_server_LoginPage.Text = "127.0.0.1";
             // 
             // textBox_name_LoginPage
             // 
@@ -461,5 +484,7 @@
         private BufferedPanel panel_ownBoard_GamePage;
         private System.Windows.Forms.Button button_ready_GamePage;
         private BufferedPanel panel_opponentBoard_GamePage;
+        private System.Windows.Forms.Label label_serverTitle_LoginPage;
+        private System.Windows.Forms.TextBox textBox_server_LoginPage;
     }
 }

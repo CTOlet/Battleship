@@ -22,15 +22,18 @@ namespace Classes
         StartGame,
         Turn,
         Shot,
-        ShotResult
+        ShotResult,
+        Win,
+        Lose
     }
 
-    public struct ClientInfo
+    public class ClientInfo
     {
-        public Socket socket;   //Socket of the client
-        public string name;  //Name by which the user logged into the chat room
-        public bool ready;
-        public Board board;
+        public Socket Socket = null;   //Socket of the client
+        //public string name;  //Name by which the User logged into the chat room
+        public User User;
+        public bool Ready;
+        public Board Board;
     }
 
     //The data structure by which the server and the client interact with 
@@ -130,6 +133,8 @@ namespace Classes
                     break;
                 case Command.ShotResult:
                     Cell = (Cell) BitConverter.ToInt32(data, 4);
+                    X = BitConverter.ToInt32(data, 4);
+                    Y = BitConverter.ToInt32(data, 8);
                     break;
             }
         }
@@ -191,7 +196,7 @@ namespace Classes
                         result.AddRange(Encoding.UTF8.GetBytes(Message));
                     break;
                 case Command.User:
-                    //Add the length of the user json
+                    //Add the length of the User json
                     user = obj as User;
                     if (user != null) Message = user.ToJson();
 
@@ -241,6 +246,8 @@ namespace Classes
                     break;
                 case Command.ShotResult:
                     result.AddRange(BitConverter.GetBytes((int)Cell));
+                    result.AddRange(BitConverter.GetBytes(X));
+                    result.AddRange(BitConverter.GetBytes(Y));
                     break;
             }
 

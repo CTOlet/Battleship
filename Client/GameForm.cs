@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Media;
 using System.Net;
@@ -26,13 +27,13 @@ namespace Client
             Turn
         }
 
-        public Socket clientSocket;
-        public User user;
+        public Socket clientSocket = null;
+        public User user = null;
         public User opponent;
         public byte[] byteData = new byte[1024];
         public GameState gameState;
-        public Board ownBoard = new Board();
-        public Board opponentBoard = new Board();
+        public Board ownBoard;
+        public Board opponentBoard;
         public int x;
         public int y;
         public Random rnd = new Random();
@@ -48,6 +49,11 @@ namespace Client
         {
             InitializeComponent();
 
+            MaximumSize = MinimumSize = Size;
+        }
+
+        public void ArrangeShips()
+        {
             ownBoard.ArrangeShip(new TupleList<int, int>
             {
                 {0, 0},
@@ -135,6 +141,7 @@ namespace Client
                         break;
                     case Command.GameFound:
                         opponent = new User(msgReceived.Message);
+                        ArrangeShips();
                         tabs.Invoke(new Action(() =>
                         {
                             tabs.SelectedTab = tab_game;
@@ -161,7 +168,7 @@ namespace Client
                         break;
                     case Command.Shot:
                         //MessageBox.Show(string.Format("{0}, {1}", msgReceived.X, msgReceived.Y));
-                        switch (msgReceived.Cell)
+                        switch (ownBoard.matrix[msgReceived.X, msgReceived.Y])
                         {
                             case Cell.Empty:
                                 ownBoard.matrix[msgReceived.X, msgReceived.Y] = Cell.Miss;
@@ -195,11 +202,37 @@ namespace Client
                                 }));
                                 break;
                             case Cell.Hit:
+                                gameState = GameState.Turn;
                                 player.Stream = (rnd.Next(0, 2) == 0) ? Resources.explosion : Resources.explosion_other;
+                                player.Play();
+                                break;
+                            case Cell.LastHit:
+                                opponentBoard.matrix[x, y] = Cell.Hit;
+                                opponentBoard.RoundShip(msgReceived.X, msgReceived.Y, true);
+                                gameState = GameState.Turn;
+                                player.Stream = Resources.explosion_finish;
                                 player.Play();
                                 break;
                         }
                         panel_opponentBoard_GamePage.Invalidate();
+                        break;
+                    case Command.Win:
+                        player.Stream = Resources.win;
+                        player.Play();
+                        tabs.Invoke(new Action(() =>
+                        {
+                            MessageBox.Show(@"You win!");
+                            tabs.SelectedTab = tab_main;
+                        }));
+                        break;
+                    case Command.Lose:
+                        player.Stream = Resources.loose;
+                        player.Play();
+                        tabs.Invoke(new Action(() =>
+                        {
+                            MessageBox.Show(@"You lose!");
+                            tabs.SelectedTab = tab_main;
+                        }));
                         break;
                 }
                 clientSocket.BeginReceive(byteData, 0, byteData.Length, SocketFlags.None, OnReceive, clientSocket);
@@ -208,7 +241,7 @@ namespace Client
             { }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message, @"Battleship", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(ex.StackTrace, @"Battleship", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -221,7 +254,7 @@ namespace Client
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message, @"Battleship", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(ex.StackTrace, @"Battleship", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -247,7 +280,7 @@ namespace Client
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message, @"Battleship", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(ex.StackTrace, @"Battleship", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -257,14 +290,27 @@ namespace Client
             {
                 clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
 
-                var ipAddress = IPAddress.Parse("127.0.0.1");
+                var ipAddress = IPAddress.Parse(textBox_server_LoginPage.Text);
                 //var ipAddress = IPAddress.Parse("192.168.1.77");
                 //var ipAddress = IPAddress.Parse("191.235.144.25"); cloudapp
                 //Server is listening on port 8000
                 var ipEndPoint = new IPEndPoint(ipAddress, 8000);
 
                 //Connect to the server
-                clientSocket.BeginConnect(ipEndPoint, OnConnect, clientSocket);
+                //clientSocket.BeginConnect(ipEndPoint, OnConnect, clientSocket);
+                clientSocket.Connect(ipEndPoint);
+
+                msgToSend = new Data
+                {
+                    Command = Command.Login,
+                    Name = textBox_name_LoginPage.Text,
+                    Password = textBox_password_LoginPage.Text
+                };
+
+                message = msgToSend.ToByte();
+
+                //Send the message to the server
+                clientSocket.BeginSend(message, 0, message.Length, SocketFlags.None, OnSend, clientSocket);
 
                 byteData = new byte[1024];
                 //Start listening to the data asynchronously
@@ -272,7 +318,7 @@ namespace Client
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message, @"Battleship", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(ex.StackTrace, @"Battleship", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -300,6 +346,8 @@ namespace Client
 
             try
             {
+                if (clientSocket == null || user == null) return true;
+                
                 //Send a message to logout of the server
                 msgToSend = new Data { Command = Command.Logout, Name = user.name };
                 message = msgToSend.ToByte();
@@ -313,13 +361,16 @@ namespace Client
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message, @"Battleship", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show(ex.StackTrace, @"Battleship", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
             return true;
         }
 
         private void button_findGame_MainPage_Click(object sender, EventArgs e)
         {
+            ownBoard = new Board();
+            opponentBoard = new Board();
+
             msgToSend = new Data { Command = Command.FindGame };
 
             message = msgToSend.ToByte();
@@ -333,6 +384,7 @@ namespace Client
             if (!CloseConnection())
             {
                 e.Cancel = true;
+                return;
             }
         }
 
@@ -483,8 +535,11 @@ namespace Client
 
         private void panel_opponentBoard_MouseClick(object sender, MouseEventArgs e)
         {
+            if (opponentBoard.matrix[x, y] != Cell.Empty) return;
+
             if (gameState == GameState.Turn)
             {
+                gameState = GameState.Wait;
                 /*
                 if (opponentBoard.matrix[x, y] == Cell.Empty)
                 {
@@ -496,7 +551,7 @@ namespace Client
                 else if (opponentBoard.matrix[x, y] == Cell.Ship)
                 {
                     opponentBoard.matrix[x, y] = Cell.Hit;
-                    if (opponentBoard.isDestroyed(x, y))
+                    if (opponentBoard.IsDestroyed(x, y))
                     {
                         player.Stream = Resources.explosion_finish;
                         player.Play();
@@ -519,7 +574,7 @@ namespace Client
 
                 //Send the message to the server
                 clientSocket.BeginSend(message, 0, message.Length, SocketFlags.None, OnSend, clientSocket);
-                MessageBox.Show("Shot");
+                //MessageBox.Show("Shot");
             }
 
             //panel_opponentBoard_GamePage.Invalidate();
@@ -533,7 +588,7 @@ namespace Client
             y = position.Y / 30;
             if (x < 0 || x > 9 || y < 0 || y > 9) return;
 
-            if (ownBoard.matrix[x, y] != Cell.Empty && ownBoard.matrix[x, y] != Cell.Ship)
+            if (opponentBoard.matrix[x, y] != Cell.Empty && opponentBoard.matrix[x, y] != Cell.Ship)
             {
                 Cursor = Cursors.No;
             }

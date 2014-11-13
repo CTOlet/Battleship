@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Security.Cryptography.X509Certificates;
 using System.Windows.Forms;
 using Classes;
 
@@ -25,7 +27,7 @@ namespace Server
 
         public string getClientName(Socket clientSocket)
         {
-            return (from ClientInfo client in clientList where client.socket == clientSocket select client.name).FirstOrDefault();
+            return (from ClientInfo client in clientList where client.Socket == clientSocket select client.User.name).FirstOrDefault();
         }
 
         private List<ClientInfo> findingList;
@@ -50,7 +52,7 @@ namespace Server
 
                 //Bind and listen on the given address
                 serverSocket.Bind(ipEndPoint);
-                serverSocket.Listen(4);
+                serverSocket.Listen(100);
 
                 //Accept the incoming clients
                 serverSocket.BeginAccept(OnAccept, serverSocket);
@@ -90,7 +92,7 @@ namespace Server
                 Socket clientSocket = (Socket)ar.AsyncState;
                 clientSocket.EndReceive(ar);
 
-                //Transform the array of bytes received from the user into an
+                //Transform the array of bytes received from the User into an
                 //intelligent form of object Data
                 Data msgReceived = new Data(byteData);
 
@@ -111,12 +113,10 @@ namespace Server
                         var user = UserDAO.Login(msgReceived.Name, msgReceived.Password);
                         if (user != null)
                         {
-                            //When a user logs in to the server then we add her to our
+                            //When a User logs in to the server then we add her to our
                             //list of clients
 
-                            ClientInfo clientInfo = new ClientInfo();
-                            clientInfo.socket = clientSocket;
-                            clientInfo.name = msgReceived.Name;
+                            var clientInfo = new ClientInfo { Socket = clientSocket, User = user };
 
                             clientList.Add(clientInfo);
 
@@ -153,7 +153,7 @@ namespace Server
                             nIndex = 0;
                             foreach (ClientInfo client in clientList)
                             {
-                                if (client.socket == clientSocket)
+                                if (client.Socket == clientSocket)
                                 {
                                     clientList.RemoveAt(nIndex);
                                     break;
@@ -166,12 +166,12 @@ namespace Server
 
                     case Command.Logout:
 
-                        //When a user wants to log out of the server then we search for her 
+                        //When a User wants to log out of the server then we search for her 
                         //in the list of clients and close the corresponding connection
-                        clientList.RemoveAll(x => x.socket == clientSocket);
-                        findingList.RemoveAll(x => x.socket == clientSocket);
-                        games.RemoveAll(x => x.player1.socket == clientSocket || x.player2.socket == clientSocket);
-                        // TODO: Notificate opponent about leave game by user
+                        clientList.RemoveAll(x => x.Socket == clientSocket);
+                        findingList.RemoveAll(x => x.Socket == clientSocket);
+                        games.RemoveAll(x => x.player1.Socket == clientSocket || x.player2.Socket == clientSocket);
+                        // TODO: Notificate opponent about leave game by User
                         // TODO: Recalc rank of the users
 
                         clientSocket.Close();
@@ -189,7 +189,10 @@ namespace Server
                         break;
 
                     case Command.FindGame:
-                        findingList.Add(clientList.First(x => x.socket == clientSocket));
+                        if (!findingList.Contains(clientList.First(x => x.Socket == clientSocket)))
+                        {
+                            findingList.Add(clientList.First(x => x.Socket == clientSocket));
+                        }
                         txtLog.Text += string.Format("[{0}] {1} is looking for a game...\r\n", DateTime.Now.ToString("hh:mm:ss"), getClientName(clientSocket));
 
                         if (findingList.Count > 1)
@@ -197,49 +200,51 @@ namespace Server
                             Game game = new Game();
                             game.player1 = findingList[0];
                             game.player2 = findingList[1];
-                            game.player1.ready = game.player2.ready = false;
+                            game.player1.Ready = game.player2.Ready = false;
                             findingList.RemoveRange(0, 2);
 
                             games.Add(game);
-                            txtLog.Text += string.Format("[{0}] Connecting {1} with {2}...\r\n", DateTime.Now.ToString("hh:mm:ss"), game.player1.name, game.player2.name);
+                            txtLog.Text += string.Format("[{0}] Connecting {1} with {2}...\r\n", DateTime.Now.ToString("hh:mm:ss"), game.player1.User.name, game.player2.User.name);
 
                             msgToSend.Command = Command.GameFound;
 
-                            message = msgToSend.ToByte(UserDAO.FindByName(game.player2.name));
-                            game.player1.socket.BeginSend(message, 0, message.Length, SocketFlags.None,
-                                OnSend, game.player1.socket);
+                            message = msgToSend.ToByte(UserDAO.FindByName(game.player2.User.name));
+                            game.player1.Socket.BeginSend(message, 0, message.Length, SocketFlags.None,
+                                OnSend, game.player1.Socket);
 
-                            message = msgToSend.ToByte(UserDAO.FindByName(game.player1.name));
-                            game.player2.socket.BeginSend(message, 0, message.Length, SocketFlags.None,
-                                OnSend, game.player2.socket);
+                            message = msgToSend.ToByte(UserDAO.FindByName(game.player1.User.name));
+                            game.player2.Socket.BeginSend(message, 0, message.Length, SocketFlags.None,
+                                OnSend, game.player2.Socket);
                         }
                         clientSocket.BeginReceive(byteData, 0, byteData.Length, SocketFlags.None, OnReceive, clientSocket);
                         break;
                     case Command.Ready:
+                        //txtLog.Text += "ready\r\n";
                         foreach (var game in games)
                         {
-                            if (game.player1.socket == clientSocket)
+                            if (game.player1.Socket == clientSocket)
                             {
-                                game.player1.ready = true;
-                                game.player1.board = new Board(msgReceived.Message);
-                            } else if (game.player2.socket == clientSocket)
-                            {
-                                game.player2.ready = true;
-                                game.player2.board = new Board(msgReceived.Message);
+                                game.player1.Ready = true;
+                                game.player1.Board = new Board(msgReceived.Message);
                             }
-                            if (game.player1.ready && game.player2.ready)
+                            else if (game.player2.Socket == clientSocket)
+                            {
+                                game.player2.Ready = true;
+                                game.player2.Board = new Board(msgReceived.Message);
+                            }
+                            if (game.player1.Ready && game.player2.Ready)
                             {
                                 msgToSend.Command = Command.StartGame;
                                 message = msgToSend.ToByte();
-                                game.player1.socket.BeginSend(message, 0, message.Length, SocketFlags.None,
-                                    OnSend, game.player1.socket);
-                                game.player2.socket.BeginSend(message, 0, message.Length, SocketFlags.None,
-                                    OnSend, game.player2.socket);
+                                game.player1.Socket.BeginSend(message, 0, message.Length, SocketFlags.None,
+                                    OnSend, game.player1.Socket);
+                                game.player2.Socket.BeginSend(message, 0, message.Length, SocketFlags.None,
+                                    OnSend, game.player2.Socket);
 
                                 msgToSend.Command = Command.Turn;
                                 message = msgToSend.ToByte();
-                                game.player1.socket.BeginSend(message, 0, message.Length, SocketFlags.None,
-                                    OnSend, game.player1.socket);
+                                game.player1.Socket.BeginSend(message, 0, message.Length, SocketFlags.None,
+                                    OnSend, game.player1.Socket);
                             }
                         }
                         clientSocket.BeginReceive(byteData, 0, byteData.Length, SocketFlags.None, OnReceive, clientSocket);
@@ -247,51 +252,209 @@ namespace Server
                     case Command.Shot:
                         foreach (var game in games)
                         {
-                            if (game.player1.socket == clientSocket)
-                            {
-                                // send result of the shot back to the client
-                                switch (game.player2.board.matrix[msgReceived.X, msgReceived.Y])
-                                {
-                                    case Cell.Empty:
-                                        msgToSend.Cell = Cell.Miss;
-                                        break;
-                                    case Cell.Ship:
-                                        msgToSend.Cell = Cell.Hit;
-                                        break;
-                                }
-                                msgToSend.Command = Command.ShotResult;
-                                message = msgToSend.ToByte();
-                                clientSocket.BeginSend(message, 0, message.Length, SocketFlags.None,
-                                            OnSend, clientSocket);
 
-                                // send to opponent shot
-                                msgToSend = msgReceived;
-                                message = msgToSend.ToByte();
-                                game.player2.socket.BeginSend(message, 0, message.Length, SocketFlags.None,
-                                    OnSend, game.player2.socket);
-                            } else if (game.player2.socket == clientSocket)
-                            {
-                                // send result of the shot back to the client
-                                switch (game.player1.board.matrix[msgReceived.X, msgReceived.Y])
-                                {
-                                    case Cell.Empty:
-                                        msgToSend.Cell = Cell.Miss;
-                                        break;
-                                    case Cell.Ship:
-                                        msgToSend.Cell = Cell.Hit;
-                                        break;
-                                }
-                                msgToSend.Command = Command.ShotResult;
-                                message = msgToSend.ToByte();
-                                clientSocket.BeginSend(message, 0, message.Length, SocketFlags.None,
-                                            OnSend, clientSocket);
+                            //if (game.player1.Socket == clientSocket)
+                            //{
+                            //    // send result of the shot back to the client
+                            //    switch (game.player2.Board.matrix[msgReceived.X, msgReceived.Y])
+                            //    {
+                            //        case Cell.Empty:
+                            //            msgToSend.Cell = Cell.Miss;
+                            //            game.player2.Board.matrix[msgReceived.X, msgReceived.Y] = Cell.Miss;
+                            //            break;
+                            //        case Cell.Ship:
+                            //            msgToSend.Cell = Cell.Hit;
+                            //            game.player2.Board.matrix[msgReceived.X, msgReceived.Y] = Cell.Hit;
+                            //            if (game.player2.Board.countAliveCells(msgReceived.X, msgReceived.Y) == 0)
+                            //            {
+                            //                game.player2.Board.matrix[msgReceived.X, msgReceived.Y] = Cell.LastHit;
+                            //            }
+                            //            break;
+                            //    }
+                            //    msgToSend.Command = Command.ShotResult;
+                            //    message = msgToSend.ToByte();
+                            //    clientSocket.BeginSend(message, 0, message.Length, SocketFlags.None,
+                            //                OnSend, clientSocket);
 
-                                // send to opponent shot
-                                msgToSend = msgReceived;
-                                message = msgToSend.ToByte();
-                                game.player1.socket.BeginSend(message, 0, message.Length, SocketFlags.None,
-                                    OnSend, game.player1.socket);
+                            //    // send to opponent shot
+                            //    msgToSend = msgReceived;
+                            //    message = msgToSend.ToByte();
+                            //    game.player2.Socket.BeginSend(message, 0, message.Length, SocketFlags.None,
+                            //        OnSend, game.player2.Socket);
+
+                            //    if (game.player2.Board.IsAllDestroyed()) // clientSocket win
+                            //    {
+                            //        txtLog.Text += string.Format("{0} win, {1} lose\r\n", getClientName(clientSocket),
+                            //            getClientName(game.player2.Socket));
+                            //        msgToSend = new Data { Command = Command.Win };
+                            //        message = msgToSend.ToByte();
+                            //        clientSocket.BeginSend(message, 0, message.Length, SocketFlags.None,
+                            //            OnSend, clientSocket);
+
+                            //        msgToSend = new Data { Command = Command.Lose };
+                            //        message = msgToSend.ToByte();
+                            //        game.player2.Socket.BeginSend(message, 0, message.Length, SocketFlags.None,
+                            //            OnSend, game.player2.Socket);
+
+                            //        games.RemoveAll(x => x.player1.Socket == clientSocket || x.player2.Socket == clientSocket);
+
+                            //        game.player1.User.rating += 2;
+                            //        game.player1.User.wins++;
+                            //        UserDAO.UpdateUser(game.player1.User);
+                            //        msgToSend = new Data { Command = Command.User };
+                            //        message = msgToSend.ToByte(game.player1.User);
+                            //        game.player1.Socket.BeginSend(message, 0, message.Length, SocketFlags.None,
+                            //            OnSend, game.player1.Socket);
+
+                            //        game.player2.User.rating += -1;
+                            //        game.player2.User.losses++;
+                            //        UserDAO.UpdateUser(game.player2.User);
+                            //        msgToSend = new Data { Command = Command.User };
+                            //        message = msgToSend.ToByte(game.player2.User);
+                            //        game.player2.Socket.BeginSend(message, 0, message.Length, SocketFlags.None,
+                            //            OnSend, game.player2.Socket);
+                            //    }
+                            //}
+                            //else if (game.player2.Socket == clientSocket)
+                            //{
+                            //    // send result of the shot back to the client
+                            //    switch (game.player1.Board.matrix[msgReceived.X, msgReceived.Y])
+                            //    {
+                            //        case Cell.Empty:
+                            //            msgToSend.Cell = Cell.Miss;
+                            //            game.player2.Board.matrix[msgReceived.X, msgReceived.Y] = Cell.Miss;
+                            //            break;
+                            //        case Cell.Ship:
+                            //            msgToSend.Cell = Cell.Hit;
+                            //            game.player2.Board.matrix[msgReceived.X, msgReceived.Y] = Cell.Hit;
+                            //            if (game.player2.Board.countAliveCells(msgReceived.X, msgReceived.Y) == 0)
+                            //            {
+                            //                game.player2.Board.matrix[msgReceived.X, msgReceived.Y] = Cell.LastHit;
+                            //            }
+                            //            break;
+                            //    }
+                            //    msgToSend.Command = Command.ShotResult;
+                            //    message = msgToSend.ToByte();
+                            //    clientSocket.BeginSend(message, 0, message.Length, SocketFlags.None,
+                            //                OnSend, clientSocket);
+
+                            //    // send to opponent shot
+                            //    msgToSend = msgReceived;
+                            //    message = msgToSend.ToByte();
+                            //    game.player1.Socket.BeginSend(message, 0, message.Length, SocketFlags.None,
+                            //        OnSend, game.player1.Socket);
+
+                            //    if (game.player1.Board.IsAllDestroyed()) // clientSocket win
+                            //    {
+                            //        txtLog.Text += string.Format("{0} win, {1} lose\r\n", getClientName(clientSocket),
+                            //            getClientName(game.player1.Socket));
+                            //        msgToSend = new Data { Command = Command.Win };
+                            //        message = msgToSend.ToByte();
+                            //        clientSocket.BeginSend(message, 0, message.Length, SocketFlags.None,
+                            //            OnSend, clientSocket);
+
+                            //        msgToSend = new Data { Command = Command.Lose };
+                            //        message = msgToSend.ToByte();
+                            //        game.player1.Socket.BeginSend(message, 0, message.Length, SocketFlags.None,
+                            //            OnSend, game.player1.Socket);
+
+                            //        games.RemoveAll(x => x.player1.Socket == clientSocket || x.player2.Socket == clientSocket);
+
+                            //        game.player2.User.rating += 2;
+                            //        game.player2.User.wins++;
+                            //        UserDAO.UpdateUser(game.player2.User);
+                            //        msgToSend = new Data { Command = Command.User };
+                            //        message = msgToSend.ToByte(game.player2.User);
+                            //        game.player2.Socket.BeginSend(message, 0, message.Length, SocketFlags.None,
+                            //            OnSend, game.player2.Socket);
+
+                            //        game.player1.User.rating += -1;
+                            //        game.player1.User.losses++;
+                            //        UserDAO.UpdateUser(game.player1.User);
+                            //        msgToSend = new Data { Command = Command.User };
+                            //        message = msgToSend.ToByte(game.player1.User);
+                            //        game.player1.Socket.BeginSend(message, 0, message.Length, SocketFlags.None,
+                            //            OnSend, game.player1.Socket);
+                            //    }
+                            //}
+                            ClientInfo ownClient = null;
+                            ClientInfo opponentClient = null;
+                            if (game.player1.Socket == clientSocket)
+                            {
+                                ownClient = game.player1;
+                                opponentClient = game.player2;
                             }
+                            else if (game.player2.Socket == clientSocket)
+                            {
+                                ownClient = game.player2;
+                                opponentClient = game.player1;
+                            }
+
+                            if (ownClient == null || opponentClient == null) continue;
+                            // send result of the shot back to the client
+                            switch (opponentClient.Board.matrix[msgReceived.X, msgReceived.Y])
+                            {
+                                case Cell.Empty:
+                                    msgToSend.Cell = Cell.Miss;
+                                    opponentClient.Board.matrix[msgReceived.X, msgReceived.Y] = Cell.Miss;
+                                    break;
+                                case Cell.Ship:
+                                    msgToSend.Cell = Cell.Hit;
+                                    opponentClient.Board.matrix[msgReceived.X, msgReceived.Y] = Cell.Hit;
+                                    if (opponentClient.Board.CountAliveCells(msgReceived.X, msgReceived.Y) == 0)
+                                    {
+                                        msgToSend.Cell = Cell.LastHit;
+                                    }
+                                    break;
+                            }
+                            msgToSend.Command = Command.ShotResult;
+                            message = msgToSend.ToByte();
+                            ownClient.Socket.BeginSend(message, 0, message.Length, SocketFlags.None,
+                                OnSend, ownClient.Socket);
+
+                            // send to opponent shot
+                            msgToSend = msgReceived;
+                            message = msgToSend.ToByte();
+                            opponentClient.Socket.BeginSend(message, 0, message.Length, SocketFlags.None,
+                                OnSend, opponentClient.Socket);
+
+                            if (opponentClient.Board.IsAllDestroyed()) // opponentClient win
+                            {
+                                txtLog.Text += string.Format("{0} win, {1} lose\r\n",
+                                    getClientName(ownClient.Socket),
+                                    getClientName(opponentClient.Socket));
+                                msgToSend = new Data {Command = Command.Win};
+                                message = msgToSend.ToByte();
+                                ownClient.Socket.BeginSend(message, 0, message.Length, SocketFlags.None,
+                                    OnSend, ownClient.Socket);
+
+                                msgToSend = new Data {Command = Command.Lose};
+                                message = msgToSend.ToByte();
+                                opponentClient.Socket.BeginSend(message, 0, message.Length, SocketFlags.None,
+                                    OnSend, opponentClient.Socket);
+
+                                games.RemoveAll(
+                                    x =>
+                                        x.player1.Socket == ownClient.Socket ||
+                                        x.player2.Socket == ownClient.Socket);
+
+                                ownClient.User.rating += 2;
+                                ownClient.User.wins++;
+                                UserDAO.UpdateUser(ownClient.User);
+                                msgToSend = new Data {Command = Command.User};
+                                message = msgToSend.ToByte(ownClient.User);
+                                ownClient.Socket.BeginSend(message, 0, message.Length, SocketFlags.None,
+                                    OnSend, ownClient.Socket);
+
+                                opponentClient.User.rating += -1;
+                                opponentClient.User.losses++;
+                                UserDAO.UpdateUser(opponentClient.User);
+                                msgToSend = new Data {Command = Command.User};
+                                message = msgToSend.ToByte(opponentClient.User);
+                                opponentClient.Socket.BeginSend(message, 0, message.Length, SocketFlags.None,
+                                    OnSend, opponentClient.Socket);
+                            }
+                            /*******************/
                         }
                         clientSocket.BeginReceive(byteData, 0, byteData.Length, SocketFlags.None, OnReceive, clientSocket);
                         break;
@@ -319,13 +482,13 @@ namespace Server
         private void timer1_Tick(object sender, EventArgs e)
         {
             groupBox_Games.Text = string.Format("Games [{0}]", games.Count.ToString());
-            listBox_GamesList.DataSource = games.Select(x => string.Format("{0} - {1}", x.player1.name, x.player2.name)).ToList();
+            listBox_GamesList.DataSource = games.Select(x => string.Format("{0} - {1}", x.player1.User.name, x.player2.User.name)).ToList();
 
             groupBox_Queue.Text = string.Format("Queue [{0}]", findingList.Count.ToString());
-            listBox_QueueList.DataSource = findingList.Select(x => string.Format("{0}", x.name)).ToList();
+            listBox_QueueList.DataSource = findingList.Select(x => string.Format("{0}", x.User.name)).ToList();
 
             groupBox_Online.Text = string.Format("Online [{0}]", clientList.Count.ToString());
-            listBox_OnlineList.DataSource = clientList.Select(x => string.Format("{0}", x.name)).ToList();
+            listBox_OnlineList.DataSource = clientList.Select(x => string.Format("{0}", x.User.name)).ToList();
         }
     }
 }

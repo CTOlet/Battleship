@@ -51,7 +51,7 @@ namespace Classes
                 //When handling errors, you can your application's response based on the error number.
                 //The two most common error numbers when connecting are as follows:
                 //0: Cannot connect to server.
-                //1045: Invalid user name and/or password.
+                //1045: Invalid User name and/or password.
                 switch (ex.Number)
                 {
                     case 0:
@@ -103,7 +103,7 @@ namespace Classes
         //Update statement
         public void Update()
         {
-            string query = "UPDATE user SET wins='1' WHERE name='alimzhan'";
+            string query = "UPDATE User SET wins='1' WHERE name='alimzhan'";
 
             //Open connection
             if (this.OpenConnection() == true)
@@ -179,7 +179,7 @@ namespace Classes
         }
 
         //Count statement
-        public int Count(string sql = "SELECT Count(*) FROM user")
+        public int Count(string sql = "SELECT Count(*) FROM User")
         {
             string query = sql;
             int Count = -1;

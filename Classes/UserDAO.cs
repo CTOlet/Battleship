@@ -12,7 +12,7 @@ namespace Classes
             if (db.OpenConnection())
             {
                 var cmd = db.connection.CreateCommand();
-                cmd.CommandText = string.Format("SELECT * FROM user WHERE name='{0}' AND password='{1}'", name, password);
+                cmd.CommandText = string.Format("SELECT * FROM User WHERE name='{0}' AND password='{1}'", name, password);
 
                 var reader = cmd.ExecuteReader(CommandBehavior.SingleRow);
                 //reader.ReadAsync();
@@ -47,7 +47,7 @@ namespace Classes
             if (db.OpenConnection())
             {
                 var cmd = db.connection.CreateCommand();
-                cmd.CommandText = string.Format("SELECT * FROM user WHERE name='{0}'", name);
+                cmd.CommandText = string.Format("SELECT * FROM User WHERE name='{0}'", name);
 
                 var reader = cmd.ExecuteReader(CommandBehavior.SingleRow);
                 //reader.ReadAsync();
@@ -73,6 +73,22 @@ namespace Classes
             }
 
             return null;
+        }
+
+        public static void UpdateUser(User user)
+        {
+            var db = new DBConnect();
+
+            if (db.OpenConnection())
+            {
+                var cmd = db.connection.CreateCommand();
+
+                cmd.CommandText = string.Format("UPDATE User SET wins='{0}', losses='{1}', rating='{2}' WHERE name='{3}'", user.wins, user.losses, user.rating, user.name);
+
+                cmd.ExecuteNonQuery();
+
+                db.CloseConnection();
+            }
         }
     }
 }
