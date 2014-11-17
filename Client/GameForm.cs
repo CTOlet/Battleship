@@ -52,6 +52,7 @@ namespace Client
             MaximumSize = MinimumSize = Size;
         }
 
+        /*
         public void ArrangeShips()
         {
             ownBoard.ArrangeShip(new TupleList<int, int>
@@ -114,6 +115,7 @@ namespace Client
                 {9, 3},
             });
         }
+        */
 
         private void OnReceive(IAsyncResult ar)
         {
@@ -125,6 +127,10 @@ namespace Client
                 //Accordingly process the message received
                 switch (msgReceived.Command)
                 {
+                    case Command.RegisterSuccess:
+                        MessageBox.Show(msgReceived.Message, @"Battleship", MessageBoxButtons.OK);
+                        clientSocket.Close();
+                        break;
                     case Command.Error:
                         MessageBox.Show(msgReceived.Message, @"Battleship", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         break;
@@ -141,7 +147,7 @@ namespace Client
                         break;
                     case Command.GameFound:
                         opponent = new User(msgReceived.Message);
-                        ArrangeShips();
+                        //ArrangeShips();
                         tabs.Invoke(new Action(() =>
                         {
                             tabs.SelectedTab = tab_game;
@@ -184,11 +190,17 @@ namespace Client
                                 ownBoard.matrix[msgReceived.X, msgReceived.Y] = Cell.Hit;
                                 player.Stream = (rnd.Next(0, 2) == 0) ? Resources.explosion : Resources.explosion_other;
                                 player.Play();
+                                if (ownBoard.CountAliveCells(msgReceived.X, msgReceived.Y) == 0)
+                                {
+                                    ownBoard.RoundShip(msgReceived.X, msgReceived.Y, true);
+                                }
                                 break;
                         }
                         panel_ownBoard_GamePage.Invalidate();
                         break;
                     case Command.ShotResult:
+                        x = msgReceived.X;
+                        y = msgReceived.Y;
                         opponentBoard.matrix[x, y] = msgReceived.Cell;
                         switch (msgReceived.Cell)
                         {
@@ -208,7 +220,7 @@ namespace Client
                                 break;
                             case Cell.LastHit:
                                 opponentBoard.matrix[x, y] = Cell.Hit;
-                                opponentBoard.RoundShip(msgReceived.X, msgReceived.Y, true);
+                                opponentBoard.RoundShip(x, y, true);
                                 gameState = GameState.Turn;
                                 player.Stream = Resources.explosion_finish;
                                 player.Play();
@@ -219,18 +231,18 @@ namespace Client
                     case Command.Win:
                         player.Stream = Resources.win;
                         player.Play();
+                        Invoke(new Action(() => MessageBox.Show(this, @"You win!")));
                         tabs.Invoke(new Action(() =>
                         {
-                            MessageBox.Show(@"You win!");
                             tabs.SelectedTab = tab_main;
                         }));
                         break;
                     case Command.Lose:
                         player.Stream = Resources.loose;
                         player.Play();
+                        Invoke(new Action(() => MessageBox.Show(this, @"You lose!")));
                         tabs.Invoke(new Action(() =>
                         {
-                            MessageBox.Show(@"You lose!");
                             tabs.SelectedTab = tab_main;
                         }));
                         break;
@@ -602,7 +614,40 @@ namespace Client
 
         private void button_leave_GamePage_Click(object sender, EventArgs e)
         {
+            msgToSend = new Data { Command = Command.Lose };
 
+            message = msgToSend.ToByte();
+
+            //Send the message to the server
+            clientSocket.BeginSend(message, 0, message.Length, SocketFlags.None, OnSend, clientSocket);
+
+            tabs.SelectedTab = tab_main;
+        }
+
+        private void button_register_LoginPage_Click(object sender, EventArgs e)
+        {
+            clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            var ipAddress = IPAddress.Parse(textBox_server_LoginPage.Text);
+            var ipEndPoint = new IPEndPoint(ipAddress, 8000);
+
+            //Connect to the server
+            clientSocket.Connect(ipEndPoint);
+
+            msgToSend = new Data
+            {
+                Command = Command.Register,
+                Name = textBox_name_LoginPage.Text,
+                Password = textBox_password_LoginPage.Text
+            };
+
+            message = msgToSend.ToByte();
+
+            //Send the message to the server
+            clientSocket.Send(message, 0, message.Length, SocketFlags.None);
+
+            byteData = new byte[1024];
+            //Start listening to the data asynchronously
+            clientSocket.BeginReceive(byteData, 0, byteData.Length, SocketFlags.None, OnReceive, clientSocket);
         }
     }
 }

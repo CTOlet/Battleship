@@ -24,7 +24,9 @@ namespace Classes
         Shot,
         ShotResult,
         Win,
-        Lose
+        Lose,
+        Register,
+        RegisterSuccess
     }
 
     public class ClientInfo
@@ -133,8 +135,8 @@ namespace Classes
                     break;
                 case Command.ShotResult:
                     Cell = (Cell) BitConverter.ToInt32(data, 4);
-                    X = BitConverter.ToInt32(data, 4);
-                    Y = BitConverter.ToInt32(data, 8);
+                    X = BitConverter.ToInt32(data, 8);
+                    Y = BitConverter.ToInt32(data, 12);
                     break;
             }
         }

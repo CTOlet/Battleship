@@ -51,6 +51,8 @@
             this.button_statistics_MainPage = new System.Windows.Forms.Button();
             this.button_findGame_MainPage = new System.Windows.Forms.Button();
             this.tab_game = new System.Windows.Forms.TabPage();
+            this.panel_opponentBoard_GamePage = new Client.BufferedPanel();
+            this.panel_ownBoard_GamePage = new Client.BufferedPanel();
             this.button_ready_GamePage = new System.Windows.Forms.Button();
             this.button_leave_GamePage = new System.Windows.Forms.Button();
             this.label_opponentName_GamePage = new System.Windows.Forms.Label();
@@ -59,8 +61,6 @@
             this.label_statusTitle_GamePage = new System.Windows.Forms.Label();
             this.label_ownName_GamePage = new System.Windows.Forms.Label();
             this.label_ownNameTitle_GamePage = new System.Windows.Forms.Label();
-            this.panel_opponentBoard_GamePage = new Client.BufferedPanel();
-            this.panel_ownBoard_GamePage = new Client.BufferedPanel();
             this.tabs.SuspendLayout();
             this.tab_login.SuspendLayout();
             this.tab_main.SuspendLayout();
@@ -105,6 +105,7 @@
             this.button_register_LoginPage.TabIndex = 9;
             this.button_register_LoginPage.Text = "Register";
             this.button_register_LoginPage.UseVisualStyleBackColor = true;
+            this.button_register_LoginPage.Click += new System.EventHandler(this.button_register_LoginPage_Click);
             // 
             // button_login_LoginPage
             // 
@@ -163,7 +164,7 @@
             this.textBox_server_LoginPage.Name = "textBox_server_LoginPage";
             this.textBox_server_LoginPage.Size = new System.Drawing.Size(142, 26);
             this.textBox_server_LoginPage.TabIndex = 5;
-            this.textBox_server_LoginPage.Text = "127.0.0.1";
+            this.textBox_server_LoginPage.Text = "191.235.144.25";
             // 
             // textBox_name_LoginPage
             // 
@@ -326,6 +327,28 @@
             this.tab_game.Text = "tabPage1";
             this.tab_game.UseVisualStyleBackColor = true;
             // 
+            // panel_opponentBoard_GamePage
+            // 
+            this.panel_opponentBoard_GamePage.Location = new System.Drawing.Point(319, 31);
+            this.panel_opponentBoard_GamePage.Name = "panel_opponentBoard_GamePage";
+            this.panel_opponentBoard_GamePage.Size = new System.Drawing.Size(301, 301);
+            this.panel_opponentBoard_GamePage.TabIndex = 11;
+            this.panel_opponentBoard_GamePage.Paint += new System.Windows.Forms.PaintEventHandler(this.panel_opponentBoard_Paint);
+            this.panel_opponentBoard_GamePage.MouseClick += new System.Windows.Forms.MouseEventHandler(this.panel_opponentBoard_MouseClick);
+            this.panel_opponentBoard_GamePage.MouseLeave += new System.EventHandler(this.panel_opponentBoard_MouseLeave);
+            this.panel_opponentBoard_GamePage.MouseMove += new System.Windows.Forms.MouseEventHandler(this.panel_opponentBoard_GamePage_MouseMove);
+            // 
+            // panel_ownBoard_GamePage
+            // 
+            this.panel_ownBoard_GamePage.Location = new System.Drawing.Point(12, 31);
+            this.panel_ownBoard_GamePage.Name = "panel_ownBoard_GamePage";
+            this.panel_ownBoard_GamePage.Size = new System.Drawing.Size(301, 301);
+            this.panel_ownBoard_GamePage.TabIndex = 0;
+            this.panel_ownBoard_GamePage.Paint += new System.Windows.Forms.PaintEventHandler(this.panel_ownBoard_Paint);
+            this.panel_ownBoard_GamePage.MouseDown += new System.Windows.Forms.MouseEventHandler(this.panel_ownBoard_MouseDown);
+            this.panel_ownBoard_GamePage.MouseMove += new System.Windows.Forms.MouseEventHandler(this.panel_ownBoard_MouseMove);
+            this.panel_ownBoard_GamePage.MouseUp += new System.Windows.Forms.MouseEventHandler(this.panel_ownBoard_MouseUp);
+            // 
             // button_ready_GamePage
             // 
             this.button_ready_GamePage.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
@@ -407,28 +430,6 @@
             this.label_ownNameTitle_GamePage.Size = new System.Drawing.Size(42, 20);
             this.label_ownNameTitle_GamePage.TabIndex = 7;
             this.label_ownNameTitle_GamePage.Text = "You:";
-            // 
-            // panel_opponentBoard_GamePage
-            // 
-            this.panel_opponentBoard_GamePage.Location = new System.Drawing.Point(319, 31);
-            this.panel_opponentBoard_GamePage.Name = "panel_opponentBoard_GamePage";
-            this.panel_opponentBoard_GamePage.Size = new System.Drawing.Size(301, 301);
-            this.panel_opponentBoard_GamePage.TabIndex = 11;
-            this.panel_opponentBoard_GamePage.Paint += new System.Windows.Forms.PaintEventHandler(this.panel_opponentBoard_Paint);
-            this.panel_opponentBoard_GamePage.MouseClick += new System.Windows.Forms.MouseEventHandler(this.panel_opponentBoard_MouseClick);
-            this.panel_opponentBoard_GamePage.MouseLeave += new System.EventHandler(this.panel_opponentBoard_MouseLeave);
-            this.panel_opponentBoard_GamePage.MouseMove += new System.Windows.Forms.MouseEventHandler(this.panel_opponentBoard_GamePage_MouseMove);
-            // 
-            // panel_ownBoard_GamePage
-            // 
-            this.panel_ownBoard_GamePage.Location = new System.Drawing.Point(12, 31);
-            this.panel_ownBoard_GamePage.Name = "panel_ownBoard_GamePage";
-            this.panel_ownBoard_GamePage.Size = new System.Drawing.Size(301, 301);
-            this.panel_ownBoard_GamePage.TabIndex = 0;
-            this.panel_ownBoard_GamePage.Paint += new System.Windows.Forms.PaintEventHandler(this.panel_ownBoard_Paint);
-            this.panel_ownBoard_GamePage.MouseDown += new System.Windows.Forms.MouseEventHandler(this.panel_ownBoard_MouseDown);
-            this.panel_ownBoard_GamePage.MouseMove += new System.Windows.Forms.MouseEventHandler(this.panel_ownBoard_MouseMove);
-            this.panel_ownBoard_GamePage.MouseUp += new System.Windows.Forms.MouseEventHandler(this.panel_ownBoard_MouseUp);
             // 
             // GameForm
             // 

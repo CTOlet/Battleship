@@ -28,7 +28,7 @@ namespace Server
             {
                 fs.Write(Properties.Resources.MySql_Data, 0, Properties.Resources.MySql_Data.Length);
             }
-             * */
+            /**/
 
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
