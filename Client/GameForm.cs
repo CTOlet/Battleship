@@ -44,6 +44,7 @@ namespace Client
         public Data msgToSend;
         public byte[] message;
         public Data msgReceived;
+        public List<History> list; 
 
         public GameForm()
         {
@@ -128,11 +129,30 @@ namespace Client
                 switch (msgReceived.Command)
                 {
                     case Command.RegisterSuccess:
-                        MessageBox.Show(msgReceived.Message, @"Battleship", MessageBoxButtons.OK);
+                        MessageBox.Show(@"You have been registered!", @"Battleship", MessageBoxButtons.OK);
                         clientSocket.Close();
                         break;
                     case Command.Error:
                         MessageBox.Show(msgReceived.Message, @"Battleship", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        break;
+                    case Command.List:
+                        list = History.List(msgReceived.Message);
+                        tabs.Invoke(new Action(() =>
+                        {
+                            foreach (var history in list)
+                            {
+                                dataGridView.Rows.Clear();
+                                var rowIndex = dataGridView.Rows.Add();
+                                var row = dataGridView.Rows[rowIndex];
+
+                                row.Cells["id"].Value = history.id;
+                                row.Cells["winnerName"].Value = history.winnerName;
+                                row.Cells["loserName"].Value = history.loserName;
+                                row.Cells["date"].Value = history.date;
+                            }
+
+                            tabs.SelectedTab = tab_statistics;
+                        }));
                         break;
                     case Command.User:
                         user = new User(msgReceived.Message);
@@ -626,28 +646,53 @@ namespace Client
 
         private void button_register_LoginPage_Click(object sender, EventArgs e)
         {
-            clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            var ipAddress = IPAddress.Parse(textBox_server_LoginPage.Text);
-            var ipEndPoint = new IPEndPoint(ipAddress, 8000);
+            try
+            {
+                clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                var ipAddress = IPAddress.Parse(textBox_server_LoginPage.Text);
+                var ipEndPoint = new IPEndPoint(ipAddress, 8000);
 
-            //Connect to the server
-            clientSocket.Connect(ipEndPoint);
+                //Connect to the server
+                clientSocket.Connect(ipEndPoint);
 
+                msgToSend = new Data
+                {
+                    Command = Command.Register,
+                    Name = textBox_name_LoginPage.Text,
+                    Password = textBox_password_LoginPage.Text
+                };
+
+                message = msgToSend.ToByte();
+
+                //Send the message to the server
+                clientSocket.Send(message, 0, message.Length, SocketFlags.None);
+
+                byteData = new byte[1024];
+                //Start listening to the data asynchronously
+                clientSocket.BeginReceive(byteData, 0, byteData.Length, SocketFlags.None, OnReceive, clientSocket);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(ex.StackTrace, @"Battleship", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void button_statistics_MainPage_Click(object sender, EventArgs e)
+        {
             msgToSend = new Data
             {
-                Command = Command.Register,
-                Name = textBox_name_LoginPage.Text,
-                Password = textBox_password_LoginPage.Text
+                Command = Command.List
             };
 
             message = msgToSend.ToByte();
 
             //Send the message to the server
-            clientSocket.Send(message, 0, message.Length, SocketFlags.None);
+            clientSocket.BeginSend(message, 0, message.Length, SocketFlags.None, OnSend, clientSocket);
+        }
 
-            byteData = new byte[1024];
-            //Start listening to the data asynchronously
-            clientSocket.BeginReceive(byteData, 0, byteData.Length, SocketFlags.None, OnReceive, clientSocket);
+        private void button_mainMenu_StatisticsPage_Click(object sender, EventArgs e)
+        {
+            tabs.SelectedTab = tab_main;
         }
     }
 }

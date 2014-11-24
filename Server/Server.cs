@@ -133,6 +133,16 @@ namespace Server
                         clientSocket.Send(message, 0, message.Length, SocketFlags.None);
                         clientSocket.Close();
                         break;
+                    case Command.List:
+
+                        msgToSend.Command = Command.List;
+                        message = msgToSend.ToByte(HistoryDAO.SelectAll());
+
+                        clientSocket.BeginSend(message, 0, message.Length, SocketFlags.None,
+                                    OnSend, clientSocket);
+
+                        clientSocket.BeginReceive(byteData, 0, byteData.Length, SocketFlags.None, OnReceive, clientSocket);
+                        break;
                     case Command.Login:
                         user = UserDAO.Login(msgReceived.Name, msgReceived.Password);
                         if (user != null)
@@ -210,6 +220,8 @@ namespace Server
                             ownClient.User.rating += -1;
                             ownClient.User.losses++;
                             UserDAO.UpdateUserRank(ownClient.User);
+
+                            HistoryDAO.Save(opponentClient.User.name, ownClient.User.name, DateTime.Now);
 
                             msgToSend.Command = Command.Win;
                             message = msgToSend.ToByte();
@@ -374,6 +386,8 @@ namespace Server
                                 message = msgToSend.ToByte(opponentClient.User);
                                 opponentClient.Socket.BeginSend(message, 0, message.Length, SocketFlags.None,
                                     OnSend, opponentClient.Socket);
+
+                                HistoryDAO.Save(ownClient.User.name, opponentClient.User.name, DateTime.Now);
                             }
                             /*******************/
                         }
@@ -416,6 +430,8 @@ namespace Server
                             message = msgToSend.ToByte();
                             opponentClient.Socket.BeginSend(message, 0, message.Length, SocketFlags.None,
                                     OnSend, opponentClient.Socket);
+
+                            HistoryDAO.Save(opponentClient.User.name, ownClient.User.name, DateTime.Now);
                         }
                         games.RemoveAll(x => x.player1.Socket == clientSocket || x.player2.Socket == clientSocket);
 

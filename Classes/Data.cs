@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
+using Newtonsoft.Json;
 
 namespace Classes
 {
@@ -60,7 +61,7 @@ namespace Classes
             int passwordLen;
             switch (Command)
             {
-                case Command.Login:
+                case Command.Login: case Command.Register:
                     //The next four store the length of the name
                     nameLen = BitConverter.ToInt32(data, 4);
                     passwordLen = BitConverter.ToInt32(data, 8);
@@ -78,15 +79,15 @@ namespace Classes
 
                     //This check makes sure that name has been passed in the array of bytes
                     if (nameLen > 0)
-                        this.Name = Encoding.UTF8.GetString(data, 12, nameLen);
+                        Name = Encoding.UTF8.GetString(data, 12, nameLen);
                     else
-                        this.Name = null;
+                        Name = null;
 
                     //This checks for a null message field
                     if (msgLen > 0)
-                        this.Message = Encoding.UTF8.GetString(data, 12 + nameLen, msgLen);
+                        Message = Encoding.UTF8.GetString(data, 12 + nameLen, msgLen);
                     else
-                        this.Message = null;
+                        Message = null;
                     break;
                 case Command.Logout:
                     //The next four store the length of the name
@@ -102,7 +103,7 @@ namespace Classes
                     Message = msgLen > 0 ? Encoding.UTF8.GetString(data, 8, msgLen) : null;
 
                     break;
-                case Command.User:
+                case Command.User: case Command.List:
                     //The next four store the length of the message json
                     msgLen = BitConverter.ToInt32(data, 4);
 
@@ -152,7 +153,17 @@ namespace Classes
             User user;
             switch (Command)
             {
-                case Command.Login:
+                case Command.List:
+                    //Add the length of the User json
+                    var list = obj as List<History>;
+                    if (list != null) Message = JsonConvert.SerializeObject(list);
+
+                    result.AddRange(Message != null ? BitConverter.GetBytes(Message.Length) : BitConverter.GetBytes(0));
+
+                    //Add the message
+                    if (Message != null) result.AddRange(Encoding.UTF8.GetBytes(Message));
+                    break;
+                case Command.Login: case Command.Register:
                     //Add the length of the name
                     result.AddRange(Name != null ? BitConverter.GetBytes(Name.Length) : BitConverter.GetBytes(0));
 
@@ -260,6 +271,7 @@ namespace Classes
         public string Password;
         public string Message;   //Message text
         public User User;
+        public List<History> List; 
         public Command Command;  //Command type (login, logout, send message, etcetera)
         public int X;
         public int Y;

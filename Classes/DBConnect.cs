@@ -82,7 +82,7 @@ namespace Classes
         }
 
         //Insert statement
-        public void Insert()
+        public void Insert(string sql = "")
         {
             string query = "INSERT INTO tableinfo (name, age) VALUES('John Smith', '33')";
 
@@ -101,7 +101,7 @@ namespace Classes
         }
 
         //Update statement
-        public void Update()
+        public void Update(string sql = "")
         {
             string query = "UPDATE User SET wins='1' WHERE name='alimzhan'";
 
@@ -124,7 +124,7 @@ namespace Classes
         }
 
         //Delete statement
-        public void Delete()
+        public void Delete(string sql = "")
         {
             string query = "DELETE FROM tableinfo WHERE name='John Smith'";
 
@@ -137,7 +137,7 @@ namespace Classes
         }
 
         //Select statement
-        public List<string>[] Select()
+        public List<string>[] Select(string sql = "")
         {
             string query = "SELECT * FROM tableinfo";
 
@@ -202,57 +202,6 @@ namespace Classes
             {
                 return Count;
             }
-        }
-
-        private string CheckForSqlInjection(string userInput)
-        {
-            bool isSQLInjection = false;
-
-            string[] sqlCheckList = { "--",
-                                        ";--",
-                                        ";",
-                                        "/*",
-                                        "*/",
-                                        "@@",
-                                        "@",
-                                        "char",
-                                        "nchar",
-                                        "varchar",
-                                        "nvarchar",
-                                        "alter",
-                                        "begin",
-                                        "cast",
-                                        "create",
-                                        "cursor",
-                                        "declare",
-                                        "delete",
-                                        "drop",
-                                        "end",
-                                        "exec",
-                                        "execute",
-                                        "fetch",
-                                        "insert",
-                                        "kill",
-                                        "open",
-                                        "select",
-                                        "sys",
-                                        "sysobjects",
-                                        "syscolumns",
-                                        "table",
-                                        "update"
-                                    };
-
-            string CheckString = userInput.Replace("'", "''");
-
-            for (int i = 0; i <= sqlCheckList.Length - 1; i++)
-            {
-                if ((CheckString.IndexOf(sqlCheckList[i], StringComparison.OrdinalIgnoreCase) >= 0))
-                {
-                    isSQLInjection = true;
-                }
-            }
-
-            return Convert.ToString(isSQLInjection);
         }
     }
 }

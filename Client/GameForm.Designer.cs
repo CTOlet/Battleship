@@ -61,10 +61,19 @@
             this.label_statusTitle_GamePage = new System.Windows.Forms.Label();
             this.label_ownName_GamePage = new System.Windows.Forms.Label();
             this.label_ownNameTitle_GamePage = new System.Windows.Forms.Label();
+            this.tab_statistics = new System.Windows.Forms.TabPage();
+            this.button_mainMenu_StatisticsPage = new System.Windows.Forms.Button();
+            this.dataGridView = new System.Windows.Forms.DataGridView();
+            this.id = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.winnerName = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.loserName = new System.Windows.Forms.DataGridViewTextBoxColumn();
+            this.date = new System.Windows.Forms.DataGridViewTextBoxColumn();
             this.tabs.SuspendLayout();
             this.tab_login.SuspendLayout();
             this.tab_main.SuspendLayout();
             this.tab_game.SuspendLayout();
+            this.tab_statistics.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.dataGridView)).BeginInit();
             this.SuspendLayout();
             // 
             // tabs
@@ -72,6 +81,7 @@
             this.tabs.Controls.Add(this.tab_login);
             this.tabs.Controls.Add(this.tab_main);
             this.tabs.Controls.Add(this.tab_game);
+            this.tabs.Controls.Add(this.tab_statistics);
             this.tabs.Location = new System.Drawing.Point(0, -21);
             this.tabs.Name = "tabs";
             this.tabs.SelectedIndex = 0;
@@ -296,6 +306,7 @@
             this.button_statistics_MainPage.TabIndex = 7;
             this.button_statistics_MainPage.Text = "Statistics";
             this.button_statistics_MainPage.UseVisualStyleBackColor = true;
+            this.button_statistics_MainPage.Click += new System.EventHandler(this.button_statistics_MainPage_Click);
             // 
             // button_findGame_MainPage
             // 
@@ -431,6 +442,68 @@
             this.label_ownNameTitle_GamePage.TabIndex = 7;
             this.label_ownNameTitle_GamePage.Text = "You:";
             // 
+            // tab_statistics
+            // 
+            this.tab_statistics.BackColor = System.Drawing.SystemColors.Control;
+            this.tab_statistics.Controls.Add(this.button_mainMenu_StatisticsPage);
+            this.tab_statistics.Controls.Add(this.dataGridView);
+            this.tab_statistics.Location = new System.Drawing.Point(4, 22);
+            this.tab_statistics.Name = "tab_statistics";
+            this.tab_statistics.Size = new System.Drawing.Size(631, 379);
+            this.tab_statistics.TabIndex = 3;
+            this.tab_statistics.Text = "tab_statistics";
+            // 
+            // button_mainMenu_StatisticsPage
+            // 
+            this.button_mainMenu_StatisticsPage.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(204)));
+            this.button_mainMenu_StatisticsPage.Location = new System.Drawing.Point(516, 343);
+            this.button_mainMenu_StatisticsPage.Name = "button_mainMenu_StatisticsPage";
+            this.button_mainMenu_StatisticsPage.Size = new System.Drawing.Size(108, 30);
+            this.button_mainMenu_StatisticsPage.TabIndex = 11;
+            this.button_mainMenu_StatisticsPage.Text = "Main menu";
+            this.button_mainMenu_StatisticsPage.UseVisualStyleBackColor = true;
+            this.button_mainMenu_StatisticsPage.Click += new System.EventHandler(this.button_mainMenu_StatisticsPage_Click);
+            // 
+            // dataGridView
+            // 
+            this.dataGridView.AllowUserToAddRows = false;
+            this.dataGridView.AllowUserToDeleteRows = false;
+            this.dataGridView.ColumnHeadersHeightSizeMode = System.Windows.Forms.DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            this.dataGridView.Columns.AddRange(new System.Windows.Forms.DataGridViewColumn[] {
+            this.id,
+            this.winnerName,
+            this.loserName,
+            this.date});
+            this.dataGridView.Location = new System.Drawing.Point(8, 11);
+            this.dataGridView.Name = "dataGridView";
+            this.dataGridView.ReadOnly = true;
+            this.dataGridView.Size = new System.Drawing.Size(616, 326);
+            this.dataGridView.TabIndex = 0;
+            // 
+            // id
+            // 
+            this.id.HeaderText = "#";
+            this.id.Name = "id";
+            this.id.ReadOnly = true;
+            // 
+            // winnerName
+            // 
+            this.winnerName.HeaderText = "Winner Name";
+            this.winnerName.Name = "winnerName";
+            this.winnerName.ReadOnly = true;
+            // 
+            // loserName
+            // 
+            this.loserName.HeaderText = "Loser Name";
+            this.loserName.Name = "loserName";
+            this.loserName.ReadOnly = true;
+            // 
+            // date
+            // 
+            this.date.HeaderText = "Date";
+            this.date.Name = "date";
+            this.date.ReadOnly = true;
+            // 
             // GameForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -448,6 +521,8 @@
             this.tab_main.PerformLayout();
             this.tab_game.ResumeLayout(false);
             this.tab_game.PerformLayout();
+            this.tab_statistics.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.dataGridView)).EndInit();
             this.ResumeLayout(false);
 
         }
@@ -487,5 +562,12 @@
         private BufferedPanel panel_opponentBoard_GamePage;
         private System.Windows.Forms.Label label_serverTitle_LoginPage;
         private System.Windows.Forms.TextBox textBox_server_LoginPage;
+        private System.Windows.Forms.TabPage tab_statistics;
+        private System.Windows.Forms.DataGridView dataGridView;
+        private System.Windows.Forms.DataGridViewTextBoxColumn id;
+        private System.Windows.Forms.DataGridViewTextBoxColumn winnerName;
+        private System.Windows.Forms.DataGridViewTextBoxColumn loserName;
+        private System.Windows.Forms.DataGridViewTextBoxColumn date;
+        private System.Windows.Forms.Button button_mainMenu_StatisticsPage;
     }
 }
